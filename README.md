@@ -11,16 +11,16 @@ The eDiskarte server-side services. Consists of authentication, CRUD operations 
 
 ## Installation
 
-> Download Docker Desktop from this website https://www.docker.com/products/docker-desktop/
+1. Download Docker Desktop from this website https://www.docker.com/products/docker-desktop/
  
-> Create an account to be signed in inside the docker desktop
+2. Create an account to be signed in inside the docker desktop
 
-> Go to the root directory of the project
+3. Go to the root directory of the project
 
 ```bash
 cd ediskarte-server
 ```
-> Create a .env file with these details
+4. Create a .env file with these details
 
 ```bash
 DATABASE_HOST=<<PUT ANY DB HOSTNAME HERE>>
@@ -34,17 +34,17 @@ SERVER_HOST=<<PUT YOUR SERVER NAME>>
 SERVER_PORT=3000
 ```
 
-> Create the database and the nodejs server
+5. Create the database and the nodejs server
 
 ```bash
 docker compose --env-file .env up
 ```
 ## Manage Data
 
-> Open MongoDB Compass
+1. Open MongoDB Compass
 
-> Make sure URI is localhost:27017 and enter any name
+2. Make sure URI is localhost:27017 and enter any name
 
-> Click Advanced Connection Options and enter your root username and password
+3. Click Advanced Connection Options and enter your root username and password
 
-> Click Save and Connect 
+4. Click Save and Connect 
