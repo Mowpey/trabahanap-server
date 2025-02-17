@@ -1,8 +1,8 @@
-#eDiskarte Server
+# eDiskarte Server
 
 The eDiskarte server-side services. Consists of authentication, CRUD operations and etc.
 
-##Prerequisites
+## Prerequisites
 - Node.js ver. 18 and up
 - Docker Desktop ver. 4.38 and up
 - MongoDB Compass ver. 1.45.3 and up
