@@ -20,7 +20,7 @@ The eDiskarte server-side services. Consists of authentication, CRUD operations 
 ```bash
 cd ediskarte-server
 ```
-4. Create a .env file with these details
+4. Create a .env file with these details (omit the <<>>)
 
 ```bash
 DATABASE_HOST=<<PUT ANY DB HOSTNAME HERE>>
