@@ -9,7 +9,7 @@ The eDiskarte server-side services. Consists of authentication, CRUD operations 
 
 
 
-##Installation
+## Installation
 
 > Download Docker Desktop from this website https://www.docker.com/products/docker-desktop/
  
@@ -39,7 +39,7 @@ SERVER_PORT=3000
 ```bash
 docker compose --env-file .env up
 ```
-##Manage Data
+## Manage Data
 
 > Open MongoDB Compass
 
