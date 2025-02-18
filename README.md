@@ -38,6 +38,7 @@ docker compose --env-file .env up
 ```
 
 ## Start the Server
+Go to the /app folder and paste the command in the terminal
 
 ```bash
 npm run server
