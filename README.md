@@ -29,9 +29,6 @@ DATABASE_PORT=27017
 MONGO_INITDB_ROOT_USERNAME=<<PUT YOUR USERNAME HERE>>
 MONGO_INITDB_ROOT_PASSWORD=<<PUT YOUR SECRET PASSWORD HERE>>
 MONGO_INITDB_DATABASE=<<NAME OF THE DB>>
-
-SERVER_HOST=<<PUT YOUR SERVER NAME>>
-SERVER_PORT=3000
 ```
 
 > Create the database and the nodejs server
@@ -43,7 +40,7 @@ docker compose --env-file .env up
 
 > Open MongoDB Compass
 
-> Make sure URI is localhost:27017 and enter any name
+> Make sure URI is localhost:27017 and enter your custom hostname
 
 > Click Advanced Connection Options and enter your root username and password
 
