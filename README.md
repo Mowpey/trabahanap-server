@@ -36,6 +36,13 @@ MONGO_INITDB_DATABASE=<<NAME OF THE DB>>
 ```bash
 docker compose --env-file .env up
 ```
+
+## Start the Server
+
+```bash
+npm run server
+```
+
 ## Manage Data
 
 1. Open MongoDB Compass
