@@ -31,18 +31,29 @@ MONGO_INITDB_ROOT_PASSWORD=<<PUT YOUR SECRET PASSWORD HERE>>
 MONGO_INITDB_DATABASE=<<NAME OF THE DB>>
 ```
 
-5. Create the database and the nodejs server
+5. Create the database 
 
 ```bash
 docker compose --env-file .env up
 ```
 
+## Setting up Prisma
+ Create a .env file containing mongodb URI and paste it in the DATABASE_URL
+ 
+
 ## Start the Server
-Go to the /app folder and paste the command in the terminal
+1. Go to the /app folder and paste the command in the terminal
+
+```bash
+npm install
+```
+    
+2. Go to the /app folder and paste the command in the terminal
 
 ```bash
 npm run server
 ```
+   
 
 ## Manage Data
 
