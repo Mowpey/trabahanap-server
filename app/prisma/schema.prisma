@@ -7,8 +7,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model users {
+model User {
   id String @id @default(auto()) @map("_id") @db.ObjectId
-  last_name String
-  
+  firstName String
+  middleName String?
+  lastName String
+  suffixName String?
+  emailAddress String @unique
+  password String
+  profileImage BinData
+  bio String?
+  barangay String
+  street String
+  houseNumber String?
+  userType String @default(value: "client")
+  jobSeekers JobSeeker[]
+  @@map("users")
+}
+
+type JobSeeker {
+  availability Bool
+  credentials BinData
+  hourlyRate String
+  jobTags JobTags[]
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+  achievementId String @db.ObjectId
+  milestone Milestone @relation(fields: [milestoneId], references: [id])
+  milestoneId String @db.ObjectId
 }
