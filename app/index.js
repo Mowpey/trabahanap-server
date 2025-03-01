@@ -1,13 +1,14 @@
 import express from "express";
-import { PrismaClient } from "@prisma/client";
+import appRouter from "./routes/app.routes.js"
+import jsonParser from "./middleware/json_parser.middleware.js";
 
-const prisma = new PrismaClient();
+
+
 const app = express();
 
-app.get("/", async (req, res) => {
-  const users = await prisma.users.findMany();
-  console.log(users);
-  res.send(users);
-});
+//create a middleware for auth or insert the auth route here
+app.use(jsonParser)
+app.use(appRouter)
+
 
 app.listen(3000);

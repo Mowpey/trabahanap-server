@@ -1,17 +1,43 @@
 services:
-
-  database:
-    image: database:1.0.0
-    container_name: ${DATABASE_HOST}
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    env_file: .env
+  mongo1:
+    image: mongo:7.0.7
+    container_name: mongo1
     ports:
-      - ${DATABASE_PORT}:${DATABASE_PORT}
+      - "27017:${DATABASE_PORT}"
+    networks:
+      - mongoCluster
     volumes:
-      - database-v:/data/db
+      - mongo1-data:/data/db
+    command: mongod --replSet mongoReplica --bind_ip localhost,mongo1
+  
+  mongo2:
+    image: mongo:7.0.7
+    container_name: mongo2
+    ports:
+      - "27018:${DATABASE_PORT}"
+    networks:
+      - mongoCluster
+    volumes:
+      - mongo2-data:/data/db
+    command: mongod --replSet mongoReplica --bind_ip localhost,mongo2
+  
+  mongo3:
+    image: mongo:7.0.7
+    container_name: mongo3
+    ports:
+      - "27019:${DATABASE_PORT}"
+    networks:
+      - mongoCluster
+    volumes:
+      - mongo3-data:/data/db
+    command: mongod --replSet mongoReplica --bind_ip localhost,mongo3
+
+networks:
+  mongoCluster:
+    name: mongoCluster
+    driver: bridge
 
 volumes:
- database-v:
-    name: "database-v"
+  mongo1-data:
+  mongo2-data:
+  mongo3-data:
