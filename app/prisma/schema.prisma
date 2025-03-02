@@ -17,7 +17,7 @@ model User {
   age Int 
   emailAddress String @unique
   password String
-  profileImage Bytes?
+  profileImage String?
   bio String?
   barangay String
   street String
