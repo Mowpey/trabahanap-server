@@ -8,195 +8,206 @@ datasource db {
 }
 
 model User {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  firstName String
-  middleName String?
-  lastName String
-  suffixName String?
-  gender String
-  age Int 
-  emailAddress String @unique
-  password String
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  firstName    String
+  middleName   String?
+  lastName     String
+  suffixName   String?
+  gender       String
+  age          Int
+  emailAddress String         @unique
+  password     String
   profileImage String?
-  bio String?
-  barangay String
-  street String
-  houseNumber String?
-  userType String
-  jobSeeker JobSeeker[]
-  jobRequest JobRequest[]
-  post Post[]
-  like Like[]
-  comment Comment[]
+  bio          String?
+  barangay     String
+  street       String
+  houseNumber  String?
+  userType     String
+  jobSeeker    JobSeeker?
+  jobRequest   JobRequest[]
+  post         Post[]
+  like         Like[]
+  comment      Comment[]
   notification Notification[]
-  message Message[]
+  message      Message[]
+
   @@map("users")
 }
 
 model JobSeeker {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  user User @relation(fields: [userId], references: [id])
-  userId String @db.ObjectId
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  user         User           @relation(fields: [userId], references: [id])
+  userId       String         @unique @db.ObjectId
   availability Boolean
-  credentials Bytes
-  hourlyRate String
-  jobTags JobTag[]
-  achievement Achievement[]
-  milestone Milestone[]
-  jobRequest JobRequest[]
-  post Post[]
-  like Like[]
-  comment Comment[]
+  // credentials  Bytes?
+  hourlyRate   String
+  jobTags      JobTag[]
+  achievement  Achievement[]
+  milestone    Milestone[]
+  jobRequest   JobRequest[]
+  post         Post[]
+  like         Like[]
+  comment      Comment[]
   notification Notification[]
-  message Message[]
+  message      Message[]
+
   @@map("jobseekers")
- }
+}
 
 model Achievement {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  achievementName String @unique
-  jobRequired String
-  requiredJobCount Int 
-  achievementIcon Bytes
-  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId String @db.ObjectId
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  achievementName  String    @unique
+  jobRequired      String
+  requiredJobCount Int
+  achievementIcon  Bytes
+  jobSeeker        JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId      String    @db.ObjectId
+
   @@map("achievements")
 }
 
 model Milestone {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  milestoneTitle String
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  milestoneTitle       String
   milestoneDescription String
-  jobsCompleted Int
-  experienceLevel String
-  achievedAt DateTime @default(value: now())
-  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId String @db.ObjectId
+  jobsCompleted        Int
+  experienceLevel      String
+  achievedAt           DateTime  @default(value: now())
+  jobSeeker            JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId          String    @db.ObjectId
+
   @@map("milestones")
 }
 
 enum JobTag {
-    plumbing
-    electricalRepair
-    carpentry
-    roofRepair
-    painting
-    welding
-    glassInstallation
-    airconRepair
-    applianceRepair
-    pestControl
-    autoMechanic
-    carWash
-    motorcycleRepair
-    carAirconRepair
-    windowTinting
-    caregiver
-    personalDriver
-    massageTherapy
-    petGrooming
-    homeCleaning
-    laundryServices
-    gardening
+  plumbing
+  electricalRepair
+  carpentry
+  roofRepair
+  painting
+  welding
+  glassInstallation
+  airconRepair
+  applianceRepair
+  pestControl
+  autoMechanic
+  carWash
+  motorcycleRepair
+  carAirconRepair
+  windowTinting
+  caregiver
+  personalDriver
+  massageTherapy
+  petGrooming
+  homeCleaning
+  laundryServices
+  gardening
 }
 
 model JobRequest {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  client User @relation(fields: [clientId], references: [id])
-  clientId String @db.ObjectId
-  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId String @db.ObjectId
-  jobTitle String 
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  client         User      @relation(fields: [clientId], references: [id])
+  clientId       String    @db.ObjectId
+  jobSeeker      JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId    String    @db.ObjectId
+  jobTitle       String
   jobDescription String
-  category String[]
-  jobLocation String
-  jobStatus String
-  budget String
-  jobDuration Int
-  jobImage Bytes[]
-  datePosted DateTime
-  jobRating Int
-  jobReview String
-  acceptedAt DateTime
-  completedAt DateTime
-  verifiedAt DateTime
+  category       String[]
+  jobLocation    String
+  jobStatus      String
+  budget         String
+  jobDuration    Int
+  jobImage       Bytes[]
+  datePosted     DateTime
+  jobRating      Int
+  jobReview      String
+  acceptedAt     DateTime
+  completedAt    DateTime
+  verifiedAt     DateTime
+
   @@map("jobrequest")
- }
+}
 
 model Post {
-id String @id @default(auto()) @map("_id") @db.ObjectId
-client User @relation(fields: [clientId], references: [id])
-clientId String @db.ObjectId
-jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
-jobSeekerId String @db.ObjectId
-postContent String
-postImage Bytes[]
-likeCount BigInt
-commentCount BigInt  
-createdAt DateTime
-like Like[]
-comment Comment[]
-@@map("post")
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  client       User      @relation(fields: [clientId], references: [id])
+  clientId     String    @db.ObjectId
+  jobSeeker    JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId  String    @db.ObjectId
+  postContent  String
+  postImage    Bytes[]
+  likeCount    BigInt
+  commentCount BigInt
+  createdAt    DateTime
+  like         Like[]
+  comment      Comment[]
+
+  @@map("post")
 }
 
 model Like {
-id String @id @default(auto()) @map("_id") @db.ObjectId
-post Post @relation(fields: [postId], references: [id])  
-postId String @db.ObjectId
-client User @relation(fields: [clientId], references: [id])
-clientId String @db.ObjectId
-jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
-jobSeekerId String @db.ObjectId
-likedAt DateTime
-@@map("like")
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  post        Post      @relation(fields: [postId], references: [id])
+  postId      String    @db.ObjectId
+  client      User      @relation(fields: [clientId], references: [id])
+  clientId    String    @db.ObjectId
+  jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId String    @db.ObjectId
+  likedAt     DateTime
+
+  @@map("like")
 }
 
 model Comment {
-id String @id @default(auto()) @map("_id") @db.ObjectId
-post Post @relation(fields: [postId], references: [id])  
-postId String @db.ObjectId
-client User @relation(fields: [clientId], references: [id])
-clientId String @db.ObjectId
-jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
-jobSeekerId String @db.ObjectId
-comment String
-createdAt DateTime
-@@map("comment")
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  post        Post      @relation(fields: [postId], references: [id])
+  postId      String    @db.ObjectId
+  client      User      @relation(fields: [clientId], references: [id])
+  clientId    String    @db.ObjectId
+  jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId String    @db.ObjectId
+  comment     String
+  createdAt   DateTime
+
+  @@map("comment")
 }
 
 model Chat {
-id String @id @default(auto()) @map("_id") @db.ObjectId
-chatParticipants String[]   
-createdAt DateTime
-lastMessageAt DateTime
-message Message[]
-@@map("chat")
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  chatParticipants String[]
+  createdAt        DateTime
+  lastMessageAt    DateTime
+  message          Message[]
+
+  @@map("chat")
 }
 
 model Message {
-id String @id @default(auto()) @map("_id") @db.ObjectId
-chat Chat @relation(fields: [chatId], references: [id])
-chatId String @db.ObjectId
-client User @relation(fields: [clientId], references: [id])
-clientId String @db.ObjectId
-jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
-jobSeekerId String @db.ObjectId
-messageContent String
-readBy String[] @db.ObjectId
-sentAt DateTime
-@@map("message")
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  chat           Chat      @relation(fields: [chatId], references: [id])
+  chatId         String    @db.ObjectId
+  client         User      @relation(fields: [clientId], references: [id])
+  clientId       String    @db.ObjectId
+  jobSeeker      JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId    String    @db.ObjectId
+  messageContent String
+  readBy         String[]  @db.ObjectId
+  sentAt         DateTime
+
+  @@map("message")
 }
 
 model Notification {
-id String @id @default(auto()) @map("_id") @db.ObjectId
-client User @relation(fields: [clientId], references: [id])
-clientId String @db.ObjectId
-jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
-jobSeekerId String @db.ObjectId
-notificationType String
-notificationTitle String
-notificationMessage String
-relatedId String[] @db.ObjectId
-createdAt DateTime
-@@map("notification")
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  client              User      @relation(fields: [clientId], references: [id])
+  clientId            String    @db.ObjectId
+  jobSeeker           JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId         String    @db.ObjectId
+  notificationType    String
+  notificationTitle   String
+  notificationMessage String
+  relatedId           String[]  @db.ObjectId
+  createdAt           DateTime
+
+  @@map("notification")
 }

@@ -4,7 +4,9 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const signUp = async (req, res) => {
-  if (req.userType == "jobSeeker") {
+  if (req.body.userType == "jobSeeker") {
+    const availability = req.body.availability.toLowerCase() === "true";
+
     const user = await prisma.user.create({
       data: {
         firstName: req.body.firstName,
@@ -22,10 +24,14 @@ const signUp = async (req, res) => {
         houseNumber: req.body.houseNumber,
         userType: req.body.userType,
         jobSeeker: {
-          availablity: req.body.availablity,
-          //credentials: req.body.credentials,
-          hourlyRate: req.body.hourlyRate,
+          create: {
+            availability: availability,
+            hourlyRate: req.body.hourlyRate,
+          },
         },
+      },
+      include: {
+        jobSeeker: true,
       },
     });
     res.json(user);
