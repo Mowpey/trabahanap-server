@@ -2,22 +2,20 @@ import express from "express";
 import * as HomeController from "../controllers/app.controller.js";
 import signUp from "../controllers/signup.controller.js";
 import multer from "multer";
+import { generateFileName, generateFolderName } from "../helpers/app.helper.js";
+import fs from "node:fs";
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "./uploads");
+    const folderName = generateFolderName(req);
+
+    if (fs.existsSync("./profiles")) {
+      fs.mkdirSync(`./profiles/${folderName}`);
+    }
+    cb(null, `./profiles/${folderName}`);
   },
   filename: function (req, file, cb) {
-    let today = new Date(Date.now());
-    let time = new Date(Date.now());
-    let splitFile = file.originalname.split(".");
-
-    today = today.toLocaleDateString().replaceAll("/", "-");
-    time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
-
-    const fileOutput =
-      splitFile[0] + "-" + today + "-" + time + "." + splitFile[1];
-    cb(null, fileOutput);
+    generateFileName(file, cb);
   },
 });
 

@@ -2,6 +2,6 @@
 .DS_Store
 .ignore
 app/node_modules
-app/uploads/*
-!app/uploads/.gitkeep
+app/profiles/*
+!app/profiles/.gitkeep
 .idea
