@@ -25,7 +25,7 @@ const signUp = async (req, res) => {
           create: {
             availability: req.body.availability.toLowerCase() === "true",
             hourlyRate: req.body.hourlyRate,
-            jobTags: [req.body.jobTags],
+            jobTags: req.body.jobTags.split(","),
           },
         },
       },
