@@ -5,8 +5,6 @@ const prisma = new PrismaClient();
 
 const signUp = async (req, res) => {
   if (req.body.userType == "jobSeeker") {
-    const availability = req.body.availability.toLowerCase() === "true";
-
     const user = await prisma.user.create({
       data: {
         firstName: req.body.firstName,
