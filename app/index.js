@@ -1,14 +1,19 @@
 import express from "express";
 import appRouter from "./routes/app.routes.js"
 import jsonParser from "./middleware/json_parser.middleware.js";
+import cors from "cors";
+import authRoutes from "./routes/authroutes.js";
+import userRoutes from "./routes/userroutes.js";
 
-
-
+dotenv.config();
 const app = express();
 
-//create a middleware for auth or insert the auth route here
+app.use(cors());
 app.use(jsonParser)
+app.use(authRoutes); 
+app.use(userRoutes); 
 app.use(appRouter)
 
 
-app.listen(3000);
+const PORT = 3000;
+app.listen(PORT);
