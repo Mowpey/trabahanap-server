@@ -26,6 +26,22 @@ const signUp = async (req, res) => {
             availability: req.body.availability.toLowerCase() === "true",
             hourlyRate: req.body.hourlyRate,
             jobTags: req.body.jobTags.split(","),
+            achievement: {
+              create: {
+                achievementName: "Starter",
+                jobRequired: "None",
+                requiredJobCount: 0,
+                achievementIcon: "./assets/achievements/starter.png",
+              },
+            },
+            milestone: {
+              create: {
+                milestoneTitle: "Start of the Journey",
+                milestoneDescription: "Successfully created an account",
+                jobsCompleted: 0,
+                experienceLevel: "1",
+              },
+            },
           },
         },
       },

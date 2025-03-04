@@ -9,10 +9,10 @@ const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const folderName = generateFolderName(req);
 
-    if (fs.existsSync("./profiles")) {
-      fs.mkdirSync(`./profiles/${folderName}`);
+    if (fs.existsSync("./assets/profiles")) {
+      fs.mkdirSync(`./assets/profiles/${folderName}`);
     }
-    cb(null, `./profiles/${folderName}`);
+    cb(null, `./assets/profiles/${folderName}`);
   },
   filename: function (req, file, cb) {
     generateFileName(file, cb);

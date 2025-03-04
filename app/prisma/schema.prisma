@@ -59,7 +59,7 @@ model Achievement {
   achievementName  String    @unique
   jobRequired      String
   requiredJobCount Int
-  achievementIcon  Bytes
+  achievementIcon  String
   jobSeeker        JobSeeker @relation(fields: [jobSeekerId], references: [id])
   jobSeekerId      String    @db.ObjectId
 
