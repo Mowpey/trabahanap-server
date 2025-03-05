@@ -12,7 +12,7 @@ The eDiskarte server-side services. Consists of authentication, CRUD operations 
 ## Installation
 
 1. Download Docker Desktop from this website https://www.docker.com/products/docker-desktop/
- 
+
 2. Create an account to be signed in inside the docker desktop
 
 3. Go to the root directory of the project
@@ -31,7 +31,7 @@ MONGO_INITDB_ROOT_PASSWORD=<<PUT YOUR SECRET PASSWORD HERE>>
 MONGO_INITDB_DATABASE=<<NAME OF THE DB>>
 ```
 
-5. Create the database 
+5. Create the database
 
 ```bash
 docker compose --env-file .env up
@@ -39,7 +39,7 @@ docker compose --env-file .env up
 
 ## Setting up Prisma
  Create a .env file containing mongodb URI and paste it in the DATABASE_URL
- 
+
 
 ## Start the Server
 1. Go to the /app folder and paste the command in the terminal
@@ -47,13 +47,14 @@ docker compose --env-file .env up
 ```bash
 npm install
 ```
-    
+
 2. Go to the /app folder and paste the command in the terminal
 
 ```bash
 npm run server
 ```
-   
+## JWT AUTHENTICATION
+1. In your .env file inside /app, create a JWT_SECRET string which contains your super secret combination
 
 ## Manage Data
 
@@ -63,4 +64,4 @@ npm run server
 
 3. Click Advanced Connection Options and enter your root username and password
 
-4. Click Save and Connect 
+4. Click Save and Connect
