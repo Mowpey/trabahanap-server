@@ -1,5 +1,3 @@
-import fs from "node:fs";
-
 export const generateFileName = (file, cb) => {
   let today = new Date(Date.now());
   let time = new Date(Date.now());

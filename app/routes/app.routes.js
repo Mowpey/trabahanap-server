@@ -6,7 +6,7 @@ import { generateFileName, generateFolderName } from "../helpers/app.helper.js";
 import fs from "node:fs";
 
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+  destination: function (req, _file, cb) {
     const folderName = generateFolderName(req);
 
     if (fs.existsSync("./assets/profiles")) {
@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
     }
     cb(null, `./assets/profiles/${folderName}`);
   },
-  filename: function (req, file, cb) {
+  filename: function (_req, file, cb) {
     generateFileName(file, cb);
   },
 });

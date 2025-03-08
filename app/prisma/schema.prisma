@@ -14,8 +14,9 @@ model User {
   lastName     String
   suffixName   String?
   gender       String
-  birthday     DateTime       @db.Date
-  emailAddress String         @unique
+  birthday     DateTime
+  age          Int
+  emailAddress String
   password     String
   profileImage String?
   bio          String?
@@ -87,7 +88,7 @@ enum JobTag {
   painting
   welding
   glassInstallation
-  airconRepair
+  airconRepairAndCleaning
   applianceRepair
   pestControl
   autoMechanic
@@ -98,8 +99,8 @@ enum JobTag {
   caregiver
   personalDriver
   massageTherapy
-  petGrooming
-  homeCleaning
+  petGroomingAndPetCare
+  homeCleaningServices
   laundryServices
   gardening
 }
