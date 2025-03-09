@@ -8,7 +8,7 @@ dotenv.config();
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     where: { emailAddress: email },
   });
   const passwordMatch = bcrypt.compareSync(password, user.password);
