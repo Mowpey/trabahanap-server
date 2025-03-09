@@ -20,7 +20,7 @@ The eDiskarte server-side services. Consists of authentication, CRUD operations 
 ```bash
 cd ediskarte-server
 ```
-4. Create a .env file with the database port (omit the <<>>)
+4. Create a .env file with the database port
 
 ```bash
 DATABASE_PORT=27017
