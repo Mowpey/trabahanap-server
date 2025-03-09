@@ -212,3 +212,7 @@ npm run server
 ```
 ## JWT AUTHENTICATION
 1. In your .env file inside /app, create a JWT_SECRET string which contains your super secret combination
+2. You can use this command to generate a JWT TOKEN
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'));"
+```
