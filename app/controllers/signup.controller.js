@@ -4,7 +4,6 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const signUp = async (req, res) => {
-  console.log(JSON.stringify(req.body));
   if (req.body.userType == "job-seeker") {
     const user = await prisma.user.create({
       data: {
@@ -51,7 +50,8 @@ const signUp = async (req, res) => {
         jobSeeker: true,
       },
     });
-    res.json(user);
+    console.log("Successful Upload of Job Seeker!", user);
+    return;
   }
 
   const user = await prisma.user.create({
@@ -73,7 +73,6 @@ const signUp = async (req, res) => {
       userType: req.body.userType,
     },
   });
-
-  res.json(user);
+  console.log("Successful Upload of Client!", user);
 };
 export default signUp;

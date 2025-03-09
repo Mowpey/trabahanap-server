@@ -82,15 +82,15 @@ model Milestone {
 
 enum JobTag {
   plumbing
-  electricalRepair
+  electricalRepairs
   carpentry
   roofRepair
-  painting
+  paintingServices
   welding
   glassInstallation
   airconRepairAndCleaning
   applianceRepair
-  pestControl
+  pestControlServices
   autoMechanic
   carWash
   motorcycleRepair
