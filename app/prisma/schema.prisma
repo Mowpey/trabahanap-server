@@ -117,7 +117,7 @@ model JobRequest {
   jobLocation    String
   jobStatus      String
   budget         String
-  jobDuration    Int
+  jobDuration    DateTime
   jobImage       Bytes[]
   datePosted     DateTime
   jobRating      Int
