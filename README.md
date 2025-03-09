@@ -187,7 +187,7 @@ docker exec -it mongo1 mongosh --eval "rs.status()"
     }
 </details>
 
-9. Connect to the mongodb using on of the ff:
+9. Connect to the mongodb using one of the ff:
 ```sh
 mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=mongoReplica
 mongodb://localhost:27017,localhost:27018,localhost:27019/my-database-name?replicaSet=mongoReplica
