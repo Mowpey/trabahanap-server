@@ -57,7 +57,7 @@ model JobSeeker {
 
 model Achievement {
   id               String    @id @default(auto()) @map("_id") @db.ObjectId
-  achievementName  String    @unique
+  achievementName  String
   jobRequired      String
   requiredJobCount Int
   achievementIcon  String
