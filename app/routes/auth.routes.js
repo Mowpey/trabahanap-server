@@ -1,6 +1,7 @@
 import { login, signUp } from "../controllers/auth.controller.js";
+import authenticateToken from "../middleware/auth.middleware.js";
 import express from "express";
-import * as HomeController from "../controllers/app.controller.js";
+import { getClient } from "../controllers/app.controller.js";
 import multer from "multer";
 import { generateFileName, generateFolderName } from "../helpers/app.helper.js";
 import fs from "node:fs";
@@ -23,7 +24,7 @@ const router = express.Router();
 const formData = multer({ storage });
 
 router.post("/login", formData.none(), login);
-router.get("/", HomeController.getHome);
+router.get("/home/client", authenticateToken, getClient);
 router.post("/signup", formData.single("profileImage"), signUp);
 
 export default router;
