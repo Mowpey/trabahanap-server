@@ -205,7 +205,7 @@ mongodb://localhost:27017,localhost:27018,localhost:27019/my-database-name?repli
 npm install
 ```
 
-2. Go to the /app folder and paste the command in the terminal
+2. Start the server using the following command
 
 ```bash
 npm run server

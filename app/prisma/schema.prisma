@@ -25,7 +25,7 @@ model User {
   houseNumber  String?
   userType     String
   jobSeeker    JobSeeker?
-  jobRequest   JobRequest[]
+  jobRequest   JobRequest?
   post         Post[]
   like         Like[]
   comment      Comment[]
@@ -108,7 +108,7 @@ enum JobTag {
 model JobRequest {
   id             String    @id @default(auto()) @map("_id") @db.ObjectId
   client         User      @relation(fields: [clientId], references: [id])
-  clientId       String    @db.ObjectId
+  clientId       String    @unique @db.ObjectId
   jobSeeker      JobSeeker @relation(fields: [jobSeekerId], references: [id])
   jobSeekerId    String    @db.ObjectId
   jobTitle       String
@@ -118,7 +118,7 @@ model JobRequest {
   jobStatus      String
   budget         String
   jobDuration    DateTime
-  jobImage       Bytes[]
+  jobImage       String
   datePosted     DateTime
   jobRating      Int
   jobReview      String
