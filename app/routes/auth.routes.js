@@ -1,10 +1,14 @@
-import { login, signUp } from "../controllers/auth.controller.js";
-import authenticateToken from "../middleware/auth.middleware.js";
+import { login, signUp, decodeToken } from "../controllers/auth.controller.js";
 import express from "express";
-import { getClient } from "../controllers/app.controller.js";
 import multer from "multer";
-import { generateFileName, generateFolderName } from "../helpers/app.helper.js";
+import {
+  generateFileName,
+  generateFolderName,
+  generateFolderJobRequest,
+  generateFileJobRequest,
+} from "../helpers/app.helper.js";
 import fs from "node:fs";
+import { jobRequest } from "../controllers/app.controller.js";
 
 const storage = multer.diskStorage({
   destination: function (req, _file, cb) {
@@ -20,11 +24,31 @@ const storage = multer.diskStorage({
   },
 });
 
-const router = express.Router();
-const formData = multer({ storage });
+const jobRequestStorage = multer.diskStorage({
+  destination: function (req, _file, cb) {
+    const folderName = generateFolderJobRequest(req);
 
-router.post("/login", formData.none(), login);
-router.get("/home/client", authenticateToken, getClient);
-router.post("/signup", formData.single("profileImage"), signUp);
+    if (fs.existsSync("./assets/job_request_files")) {
+      fs.mkdirSync(`./assets/job_request_files/${folderName}`);
+    }
+    cb(null, `./assets/job_request_files/${folderName}`);
+  },
+  filename: function (_req, files, cb) {
+    generateFileJobRequest(files, cb);
+  },
+});
+
+const router = express.Router();
+const signUpData = multer({ storage });
+const jobRequestData = multer({ jobRequestStorage });
+
+router.post("/login", login);
+router.get("/decodeToken", decodeToken);
+router.post("/signup", signUpData.single("profileImage"), signUp);
+router.post(
+  "/client-home/add-jobs",
+  jobRequestData.array("jobImage", 3),
+  jobRequest,
+);
 
 export default router;

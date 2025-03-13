@@ -21,3 +21,30 @@ export const generateFolderName = (req) => {
   const folderName = req.body.lastName + "-" + today + "-" + time;
   return folderName;
 };
+
+export const generateFolderJobRequest = (req) => {
+  let today = new Date(Date.now());
+  let time = new Date(Date.now());
+
+  today = today.toLocaleDateString().replaceAll("/", "-");
+  time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
+
+  const folderName = req.body.user.lastName + "-" + today + "-" + time;
+  return folderName;
+};
+
+export const generateFileJobRequest = (files, cb) => {
+  let today = new Date(Date.now());
+  let time = new Date(Date.now());
+
+  files.forEach((file) => {
+    let splittedFile = file.originalname.split(".");
+
+    today = today.toLocaleDateString().replaceAll("/", "-");
+    time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
+
+    const fileOutput =
+      file.fieldname + "-" + today + "-" + time + "." + splittedFile[1];
+    cb(null, fileOutput);
+  });
+};

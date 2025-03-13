@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 dotenv.config();
@@ -23,9 +24,8 @@ export const login = async (req, res) => {
   const token = jwt.sign(
     { id: user.id, email: user.emailAddress },
     process.env.JWT_SECRET,
-    { expiresIn: "10h" },
+    { expiresIn: "7d" },
   );
-
   res.json({ message: "Login successful", token, user });
 };
 
@@ -100,4 +100,14 @@ export const signUp = async (req, res) => {
     },
   });
   console.log("Successful Upload of Client!", user);
+};
+
+export const decodeToken = async (req, res) => {
+  const decodedToken = jwt.verify(req.query.token, process.env.JWT_SECRET);
+  const getTokenData = await prisma.user.findUnique({
+    where: {
+      id: decodedToken.id,
+    },
+  });
+  res.json(getTokenData);
 };

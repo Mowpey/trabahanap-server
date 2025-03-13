@@ -106,25 +106,26 @@ enum JobTag {
 }
 
 model JobRequest {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
-  client         User      @relation(fields: [clientId], references: [id])
-  clientId       String    @unique @db.ObjectId
-  jobSeeker      JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId    String    @db.ObjectId
-  jobTitle       String
-  jobDescription String
-  category       String[]
-  jobLocation    String
-  jobStatus      String
-  budget         String
-  jobDuration    DateTime
-  jobImage       String
-  datePosted     DateTime
-  jobRating      Int
-  jobReview      String
-  acceptedAt     DateTime
-  completedAt    DateTime
-  verifiedAt     DateTime
+  id               String     @id @default(auto()) @map("_id") @db.ObjectId
+  client           User       @relation(fields: [clientId], references: [id])
+  clientId         String     @unique @db.ObjectId
+  jobSeeker        JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId      String     @db.ObjectId
+  jobTitle         String
+  jobDescription   String
+  category         String
+  jobLocation      String
+  jobStatus        String
+  budget           String
+  jobStartDuration DateTime
+  jobEndDuration   DateTime
+  jobImage         String[]
+  datePosted       DateTime   @default(now())
+  jobRating        Int
+  jobReview        String
+  acceptedAt       DateTime
+  completedAt      DateTime
+  verifiedAt       DateTime
 
   @@map("jobrequest")
 }
