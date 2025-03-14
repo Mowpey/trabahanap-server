@@ -3,9 +3,6 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const jobRequest = async (req, res) => {
-  console.log("Checking the files", req.files);
-  console.log("Checking the body", req.body);
-
   const jobPost = await prisma.jobRequest.create({
     data: {
       client: { connect: { id: req.body.client } },
