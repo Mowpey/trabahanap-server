@@ -1,3 +1,7 @@
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
 export const generateFileName = (file, cb) => {
   let today = new Date(Date.now());
   let time = new Date(Date.now());
@@ -22,29 +26,27 @@ export const generateFolderName = (req) => {
   return folderName;
 };
 
-export const generateFolderJobRequest = (req) => {
+export const generateFolderJobRequest = (file) => {
   let today = new Date(Date.now());
   let time = new Date(Date.now());
 
   today = today.toLocaleDateString().replaceAll("/", "-");
   time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
 
-  const folderName = req.body.user.lastName + "-" + today + "-" + time;
+  const folderName = file.fieldname + "-" + today + "-" + time;
   return folderName;
 };
 
-export const generateFileJobRequest = (files, cb) => {
+export const generateFileJobRequest = (file, cb) => {
   let today = new Date(Date.now());
   let time = new Date(Date.now());
 
-  files.forEach((file) => {
-    let splittedFile = file.originalname.split(".");
+  let splittedFile = file.originalname.split(".");
 
-    today = today.toLocaleDateString().replaceAll("/", "-");
-    time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
+  today = today.toLocaleDateString().replaceAll("/", "-");
+  time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
 
-    const fileOutput =
-      file.fieldname + "-" + today + "-" + time + "." + splittedFile[1];
-    cb(null, fileOutput);
-  });
+  const fileOutput =
+    file.fieldname + "-" + today + "-" + time + "." + splittedFile[1];
+  cb(null, fileOutput);
 };

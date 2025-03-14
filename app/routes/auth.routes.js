@@ -25,22 +25,32 @@ const storage = multer.diskStorage({
 });
 
 const jobRequestStorage = multer.diskStorage({
-  destination: function (req, _file, cb) {
-    const folderName = generateFolderJobRequest(req);
+  destination: function (req, file, cb) {
+    if (!req.folderName) {
+      req.folderName = generateFolderJobRequest(file);
 
-    if (fs.existsSync("./assets/job_request_files")) {
-      fs.mkdirSync(`./assets/job_request_files/${folderName}`);
+      const folderPath = `./assets/job_request_files/${req.folderName}`;
+
+      if (!fs.existsSync("./assets/job_request_files")) {
+        fs.mkdirSync("./assets/job_request_files", { recursive: true });
+      }
+
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath);
+      }
     }
-    cb(null, `./assets/job_request_files/${folderName}`);
+
+    cb(null, `./assets/job_request_files/${req.folderName}`);
   },
-  filename: function (_req, files, cb) {
-    generateFileJobRequest(files, cb);
+  filename: function (_req, file, cb) {
+    generateFileJobRequest(file, cb);
   },
 });
 
 const router = express.Router();
-const signUpData = multer({ storage });
-const jobRequestData = multer({ jobRequestStorage });
+const signUpData = multer({ storage: storage });
+// const jobRequestData = multer({ dest: "./assets/job_request_files" });
+const jobRequestData = multer({ storage: jobRequestStorage });
 
 router.post("/login", login);
 router.get("/decodeToken", decodeToken);
