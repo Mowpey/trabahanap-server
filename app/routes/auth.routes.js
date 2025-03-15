@@ -8,7 +8,10 @@ import {
   generateFileJobRequest,
 } from "../helpers/app.helper.js";
 import fs from "node:fs";
-import { jobRequest } from "../controllers/app.controller.js";
+import {
+  jobRequest,
+  getClientListings,
+} from "../controllers/app.controller.js";
 
 const storage = multer.diskStorage({
   destination: function (req, _file, cb) {
@@ -60,5 +63,6 @@ router.post(
   jobRequestData.array("jobImage", 3),
   jobRequest,
 );
+router.get("/client-home/job-listings", getClientListings);
 
 export default router;

@@ -25,3 +25,11 @@ export const jobRequest = async (req, res) => {
 
   console.log("Successfully posted the job request", jobPost);
 };
+
+export const getClientListings = async (req, res) => {
+  const response = await prisma.jobRequest.findMany({
+    where: { clientId: req.query.client },
+  });
+
+  res.json(response);
+};
