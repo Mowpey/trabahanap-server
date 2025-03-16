@@ -33,3 +33,11 @@ export const getClientListings = async (req, res) => {
 
   res.json(response);
 };
+
+export const deleteClientListings = async (req, res) => {
+  await prisma.jobRequest.delete({
+    where: { id: req.query.jobID },
+  });
+
+  res.send(`Successfully deleted job ID ${req.query.jobID}`);
+};
