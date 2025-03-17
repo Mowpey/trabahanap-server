@@ -1,4 +1,4 @@
-# eDiskarte Server
+# TrabaHanap Server
 
 The eDiskarte server-side services. Consists of authentication, CRUD operations and etc.
 
