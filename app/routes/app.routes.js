@@ -1,8 +1,10 @@
 import express from "express";
 import {
   getClientListings,
+  getSingleJobListing,
   jobRequest,
   deleteClientListings,
+  editClientListings,
 } from "../controllers/app.controller.js";
 import multer from "multer";
 import {
@@ -46,6 +48,8 @@ router.post(
   jobRequest,
 );
 router.get("/client-home/job-listings", getClientListings);
+router.get("/client-home/job-listings/:id", getSingleJobListing);
 router.delete("/client-home/delete-listing", deleteClientListings);
+router.patch("/client-home/:id/edit-listing", editClientListings);
 
 export default router;

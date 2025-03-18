@@ -6,7 +6,9 @@ import jobSeekerRoutes from "./routes/jobseekertags.routes.js";
 import cors from "cors";
 
 const app = express();
-app.use(cors({ origin: "*" })); 
+
+app.use(cors({ origin: "*" }));
+app.use(express.static("../app"));
 app.use(express.json());
 app.use(authRoutes);
 app.use(appRouter);

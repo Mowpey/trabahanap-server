@@ -47,6 +47,12 @@ export const generateFileJobRequest = (file, cb) => {
   time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
 
   const fileOutput =
-    file.fieldname + "-" + today + "-" + time + "." + splittedFile[1];
+    file.originalname.split(".")[0] +
+    "-" +
+    today +
+    "-" +
+    time +
+    "." +
+    splittedFile[1];
   cb(null, fileOutput);
 };

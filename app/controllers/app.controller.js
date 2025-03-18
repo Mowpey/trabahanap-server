@@ -34,10 +34,25 @@ export const getClientListings = async (req, res) => {
   res.json(response);
 };
 
+export const getSingleJobListing = async (req, res) => {
+  const response = await prisma.jobRequest.findFirst({
+    where: { id: req.query.jobID },
+  });
+
+  res.json(response);
+};
+
 export const deleteClientListings = async (req, res) => {
   await prisma.jobRequest.delete({
     where: { id: req.query.jobID },
   });
 
   res.send(`Successfully deleted job ID ${req.query.jobID}`);
+};
+
+export const editClientListings = async (req, res) => {
+  // console.log(req);
+  // const response = await prisma.jobRequest.update({
+  //   where: { id: req.query.jobID },
+  // });
 };
