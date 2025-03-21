@@ -43,7 +43,7 @@ docker exec -it mongo1 mongosh --eval "rs.initiate({
  ]
 })"
 ```
-7. cd to /etc/host and append the ff:
+7. cd to / then go to /etc/host and append the ff:
 ```bash
 127.0.0.1 mongo1
 127.0.0.1 mongo2
