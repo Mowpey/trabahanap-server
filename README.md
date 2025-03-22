@@ -195,7 +195,12 @@ mongodb://localhost:27017,localhost:27018,localhost:27019/my-database-name?repli
 
 
 ## Setting up Prisma
- Create a .env file containing mongodb URI and paste it in the DATABASE_URL
+ 1. Create a .env file containing mongodb URI and paste it in the DATABASE_URL
+ 2. If your mongo compass or the command prisma db push wont go through with an error of a server timeout,
+    make sure you have mongo1 cluster as the primary node. Use this command to force it.
+```sh
+docker exec -it mongo2 mongosh --eval "rs.reconfig({ _id: 'mongoReplica', members: [{ _id: 0, host: 'mongo1:27017', priority: 2 }, { _id: 1, host: 'mongo2:27017', priority: 1 }, { _id: 2, host: 'mongo3:27017', priority: 1 }] })"
+```
 
 
 ## Start the Server
