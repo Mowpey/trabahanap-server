@@ -39,17 +39,24 @@ const jobRequestStorage = multer.diskStorage({
 });
 
 const formData = multer();
-const jobRequestData = multer({ storage: jobRequestStorage });
+const jobRequestData = multer({
+  storage: jobRequestStorage,
+});
 
 router.post("/home/job_request", formData.none(), jobRequest);
 router.post(
   "/client-home/add-jobs",
   jobRequestData.array("jobImage", 3),
-  jobRequest,
+  jobRequest
 );
+
 router.get("/client-home/job-listings", getClientListings);
 router.get("/client-home/job-listings/:id", getSingleJobListing);
 router.delete("/client-home/delete-listing", deleteClientListings);
-router.patch("/client-home/:id/edit-listing", editClientListings);
+router.patch(
+  "/client-home/:id/edit-listing",
+  jobRequestData.array("jobImage", 3),
+  editClientListings
+);
 
 export default router;

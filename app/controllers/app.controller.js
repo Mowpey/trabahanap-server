@@ -24,6 +24,7 @@ export const jobRequest = async (req, res) => {
   });
 
   console.log("Successfully posted the job request", jobPost);
+  res.status(201).json(jobPost);
 };
 
 export const getClientListings = async (req, res) => {
@@ -51,8 +52,31 @@ export const deleteClientListings = async (req, res) => {
 };
 
 export const editClientListings = async (req, res) => {
-  // console.log(req);
-  // const response = await prisma.jobRequest.update({
-  //   where: { id: req.query.jobID },
-  // });
+  let final_images = [];
+
+  if (req.body.jobImage != undefined) {
+    if (Array.isArray(req.body.jobImage)) {
+      req.body.jobImage.forEach((imgURI) => final_images.push(imgURI));
+    } else {
+      final_images.push(req.body.jobImage);
+    }
+  }
+
+  if (req.files.length > 0) {
+    req.files.map((file) => final_images.push(file.path));
+  }
+
+  const response = await prisma.jobRequest.update({
+    where: { id: req.body.id },
+    data: {
+      jobTitle: req.body.jobTitle,
+      jobDescription: req.body.description,
+      category: req.body.category,
+      budget: req.body.budget,
+      jobLocation: req.body.jobLocation,
+      jobImage: final_images,
+    },
+  });
+
+  res.status(200).json(response);
 };

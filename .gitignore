@@ -5,3 +5,4 @@ app/node_modules
 app/assets/*/*
 !app/assets/*/.gitkeep
 .idea
+.vscode/settings.json

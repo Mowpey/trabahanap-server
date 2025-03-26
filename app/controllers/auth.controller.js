@@ -30,7 +30,7 @@ export const login = async (req, res) => {
 };
 
 export const signUp = async (req, res) => {
-  if (req.body.userType == "job-seeker") {
+  if (req.body.userType === "job-seeker") {
     const user = await prisma.user.create({
       data: {
         firstName: req.body.firstName,
@@ -77,6 +77,7 @@ export const signUp = async (req, res) => {
       },
     });
     console.log("Successful Upload of Job Seeker!", user);
+    res.json(user);
     return;
   }
 
@@ -100,14 +101,19 @@ export const signUp = async (req, res) => {
     },
   });
   console.log("Successful Upload of Client!", user);
+  res.json(user);
 };
 
 export const decodeToken = async (req, res) => {
   const decodedToken = jwt.verify(req.query.token, process.env.JWT_SECRET);
-  const getTokenData = await prisma.user.findUnique({
-    where: {
-      id: decodedToken.id,
-    },
-  });
-  res.json(getTokenData);
+  try {
+    const getTokenData = await prisma.user.findUnique({
+      where: {
+        id: decodedToken.id,
+      },
+    });
+    res.json(getTokenData);
+  } catch (error) {
+    res.status(500).send("JWT must be provided");
+  }
 };
