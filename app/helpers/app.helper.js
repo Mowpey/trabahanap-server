@@ -1,58 +1,50 @@
+import cryptoRandomString from "crypto-random-string";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
-
-export const generateFileName = (file, cb) => {
+export const generateFolderJobRequestName = () => {
   let today = new Date(Date.now());
-  let time = new Date(Date.now());
+  today = today.toLocaleDateString().replaceAll("/", "");
+
+  const folderName = cryptoRandomString({ length: 10 }) + "_" + today;
+  return folderName;
+};
+
+export const generateFileJobRequestName = (file, cb) => {
+  let today = new Date(Date.now());
   let splittedFile = file.originalname.split(".");
 
-  today = today.toLocaleDateString().replaceAll("/", "-");
-  time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
+  today = today.toLocaleDateString().replaceAll("/", "");
 
   const fileOutput =
-    splittedFile[0] + "-" + today + "-" + time + "." + splittedFile[1];
+    cryptoRandomString({ length: 5 }) + "_" + today + "." + splittedFile[1];
   cb(null, fileOutput);
 };
 
-export const generateFolderName = (req) => {
-  let today = new Date(Date.now());
-  let time = new Date(Date.now());
+export const genFolderEdit = async (req) => {
+  const prisma = new PrismaClient();
 
-  today = today.toLocaleDateString().replaceAll("/", "-");
-  time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
+  const res = await prisma.jobRequest.findFirst({
+    where: {
+      id: req.params.id,
+    },
+    select: {
+      jobImage: true,
+    },
+  });
 
-  const folderName = req.body.lastName + "-" + today + "-" + time;
-  return folderName;
+  if (!res.jobImage || res.jobImage.length === 0) {
+    return generateFolderJobRequestName();
+  }
+
+  return res.jobImage[0].split("/")[2];
 };
 
-export const generateFolderJobRequest = (file) => {
+export const genFileEdit = (file, cb) => {
   let today = new Date(Date.now());
-  let time = new Date(Date.now());
-
-  today = today.toLocaleDateString().replaceAll("/", "-");
-  time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
-
-  const folderName = file.fieldname + "-" + today + "-" + time;
-  return folderName;
-};
-
-export const generateFileJobRequest = (file, cb) => {
-  let today = new Date(Date.now());
-  let time = new Date(Date.now());
-
   let splittedFile = file.originalname.split(".");
-
-  today = today.toLocaleDateString().replaceAll("/", "-");
-  time = time.getHours() + "-" + time.getMinutes() + "-" + time.getSeconds();
+  today = today.toLocaleDateString().replaceAll("/", "");
 
   const fileOutput =
-    file.originalname.split(".")[0] +
-    "-" +
-    today +
-    "-" +
-    time +
-    "." +
-    splittedFile[1];
+    cryptoRandomString({ length: 5 }) + "_" + today + "." + splittedFile[1];
   cb(null, fileOutput);
 };

@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import fs from "fs/promises";
 
 const prisma = new PrismaClient();
 
@@ -48,13 +49,15 @@ export const deleteClientListings = async (req, res) => {
     where: { id: req.query.jobID },
   });
 
-  res.send(`Successfully deleted job ID ${req.query.jobID}`);
+  res.status(200).json(`Successfully deleted job ID ${req.query.jobID}`);
 };
 
 export const editClientListings = async (req, res) => {
   let final_images = [];
+  const folderPath =
+    req.files && req.files.length > 0 ? req.files[0].destination : "";
 
-  if (req.body.jobImage != undefined) {
+  if (req.body.jobImage) {
     if (Array.isArray(req.body.jobImage)) {
       req.body.jobImage.forEach((imgURI) => final_images.push(imgURI));
     } else {
@@ -64,6 +67,15 @@ export const editClientListings = async (req, res) => {
 
   if (req.files.length > 0) {
     req.files.map((file) => final_images.push(file.path));
+  }
+
+  if (folderPath) {
+    const existingImages = await fs.readdir(folderPath);
+    existingImages.forEach((existing_img) => {
+      if (!final_images.map((x) => x.split("/").pop()).includes(existing_img)) {
+        fs.unlink(`${folderPath}/${existing_img}`);
+      }
+    });
   }
 
   const response = await prisma.jobRequest.update({
@@ -78,5 +90,6 @@ export const editClientListings = async (req, res) => {
     },
   });
 
+  console.log("Successfully Edited Job Request!", response);
   res.status(200).json(response);
 };
