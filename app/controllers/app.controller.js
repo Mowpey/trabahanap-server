@@ -45,9 +45,16 @@ export const getSingleJobListing = async (req, res) => {
 };
 
 export const deleteClientListings = async (req, res) => {
-  await prisma.jobRequest.delete({
+  const response = await prisma.jobRequest.delete({
     where: { id: req.query.jobID },
   });
+  console.log("Delete response", response);
+
+  const parseDir = response.jobImage[0].split("/");
+  parseDir.pop();
+  const finalParsing = parseDir.join("/");
+
+  fs.rm(finalParsing, { recursive: true });
 
   res.status(200).json(`Successfully deleted job ID ${req.query.jobID}`);
 };
