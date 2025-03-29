@@ -192,7 +192,11 @@ docker exec -it mongo1 mongosh --eval "rs.status()"
 mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=mongoReplica
 mongodb://localhost:27017,localhost:27018,localhost:27019/my-database-name?replicaSet=mongoReplica
 ```
+10. To force a mongo1 to be primary use the ff. command ** TAKE NOTE! mongo2 in docker exec -t mongo2 is replaceable by any replica set in which it has the PRIMARY status (e.g. if mongo1 is primary, use docker exec -it mongo1 ... or if mongo3 use, docker exec -it mongo3 ... ) **:
+```sh
+docker exec -it mongo2 mongosh --eval "rs.reconfig({ _id: 'mongoReplica', members: [{ _id: 0, host: 'mongo1:27017', priority: 2 }, { _id: 1, host: 'mongo2:27017', priority: 1 }, { _id: 2, host: 'mongo3:27017', priority: 1 }] })"
 
+```
 
 ## Setting up Prisma
  1. Create a .env file containing mongodb URI and paste it in the DATABASE_URL
