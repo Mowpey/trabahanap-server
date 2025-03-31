@@ -117,8 +117,7 @@ model JobRequest {
   jobLocation      String
   jobStatus        String
   budget           String
-  jobStartDuration DateTime
-  jobEndDuration   DateTime
+  jobDuration      String     @default("")
   jobImage         String[]
   datePosted       DateTime   @default(now())
   jobRating        Int

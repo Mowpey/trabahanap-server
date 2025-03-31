@@ -13,8 +13,7 @@ export const jobRequest = async (req, res) => {
       jobLocation: req.body.jobLocation,
       jobStatus: "open",
       budget: req.body.budget,
-      jobStartDuration: new Date(Date.now()), //temporarily while waiting for the commit
-      jobEndDuration: new Date(Date.now()), //temporarily while waiting for the commit
+      jobDuration: req.body.jobDuration,
       jobImage: req.files.map((file) => file.path),
       jobRating: 0,
       jobReview: "",
@@ -92,6 +91,7 @@ export const editClientListings = async (req, res) => {
       jobDescription: req.body.description,
       category: req.body.category,
       budget: req.body.budget,
+      jobDuration: req.body.jobDuration,
       jobLocation: req.body.jobLocation,
       jobImage: final_images,
     },
