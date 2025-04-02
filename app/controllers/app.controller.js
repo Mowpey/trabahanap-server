@@ -4,6 +4,32 @@ import fs from "fs/promises";
 const prisma = new PrismaClient();
 
 export const jobRequest = async (req, res) => {
+  if (req.body.jobSeeker) {
+    const jobPost = await prisma.jobRequest.create({
+      data: {
+        client: { connect: { id: req.body.client } },
+        jobSeeker: { connect: { id: req.body.jobSeeker } },
+        jobTitle: req.body.jobTitle,
+        jobDescription: req.body.jobDescription,
+        category: req.body.category,
+        jobLocation: req.body.jobLocation,
+        jobStatus: "open",
+        budget: req.body.budget,
+        jobDuration: req.body.jobDuration,
+        jobImage: req.files.map((file) => file.path),
+        jobRating: 0,
+        jobReview: "",
+        acceptedAt: new Date(Date.now()), //temporarily when there is still no connection with job seekers
+        completedAt: new Date(Date.now()), //temporarily when there is still no connection with job seekers
+        verifiedAt: new Date(Date.now()), //temporarily when there is still no connection with job seekers
+      },
+    });
+    console.log("Successfully posted the job request", jobPost);
+    res.status(201).json(jobPost);
+
+    return;
+  }
+
   const jobPost = await prisma.jobRequest.create({
     data: {
       client: { connect: { id: req.body.client } },
@@ -47,13 +73,14 @@ export const deleteClientListings = async (req, res) => {
   const response = await prisma.jobRequest.delete({
     where: { id: req.query.jobID },
   });
-  console.log("Delete response", response);
 
-  const parseDir = response.jobImage[0].split("/");
-  parseDir.pop();
-  const finalParsing = parseDir.join("/");
+  if (response && response.jobImage > 0) {
+    const parseDir = response.jobImage[0].split("/");
+    parseDir.pop();
+    const finalParsing = parseDir.join("/");
 
-  fs.rm(finalParsing, { recursive: true });
+    fs.rm(finalParsing, { recursive: true });
+  }
 
   res.status(200).json(`Successfully deleted job ID ${req.query.jobID}`);
 };

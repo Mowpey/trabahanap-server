@@ -131,14 +131,14 @@ model JobRequest {
 
 model Post {
   id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  client       User      @relation(fields: [clientId], references: [id])
-  clientId     String    @db.ObjectId
-  jobSeeker    JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId  String    @db.ObjectId
+  client       User?      @relation(fields: [clientId], references: [id])
+  clientId     String    @db.ObjectId @default("")
+  jobSeeker    JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId  String    @db.ObjectId @default("")
   postContent  String
-  postImage    Bytes[]
-  likeCount    BigInt
-  commentCount BigInt
+  postImage    String?
+  likeCount    Int
+  commentCount Int
   createdAt    DateTime
   like         Like[]
   comment      Comment[]
@@ -150,10 +150,10 @@ model Like {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   post        Post      @relation(fields: [postId], references: [id])
   postId      String    @db.ObjectId
-  client      User      @relation(fields: [clientId], references: [id])
-  clientId    String    @db.ObjectId
-  jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId String    @db.ObjectId
+  client      User?      @relation(fields: [clientId], references: [id])
+  clientId    String    @db.ObjectId @default("")
+  jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId String    @db.ObjectId @default("")
   likedAt     DateTime
 
   @@map("like")
