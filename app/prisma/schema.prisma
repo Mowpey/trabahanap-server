@@ -163,12 +163,16 @@ model Comment {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   post        Post      @relation(fields: [postId], references: [id])
   postId      String    @db.ObjectId
-  client      User      @relation(fields: [clientId], references: [id])
+  client      User?      @relation(fields: [clientId], references: [id])
   clientId    String    @db.ObjectId
-  jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
   jobSeekerId String    @db.ObjectId
   comment     String
   createdAt   DateTime
+
+  parentCommentId String? @db.ObjectId
+  parentComment Comment? @relation("Replies", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies Comment[] @relation("Replies")
 
   @@map("comment")
 }
