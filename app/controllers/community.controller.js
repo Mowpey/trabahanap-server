@@ -38,6 +38,14 @@ export const createPosting = async (req, res) => {
   }
 };
 
+export const deletePosting = async (req, res) => {
+  const response = await prisma.post.delete({
+    where: { id: req.body.id },
+  });
+  console.log("Successfully deleted your post!", response);
+  res.status(204).json(response);
+};
+
 export const userHasLiked = async (req, res) => {
   if (req.body.client) {
     const response = await prisma.like.create({

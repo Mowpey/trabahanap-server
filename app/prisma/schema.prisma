@@ -161,7 +161,7 @@ model Like {
 
 model Comment {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  post        Post      @relation(fields: [postId], references: [id])
+  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId      String    @db.ObjectId
   client      User?      @relation(fields: [clientId], references: [id])
   clientId    String    @db.ObjectId
