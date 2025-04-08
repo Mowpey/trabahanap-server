@@ -9,7 +9,11 @@ import {
 const router = express.Router();
 const formData = multer();
 
-router.post("/community/posts", formData.none(), createPosting);
+router.post(
+  "/community/posts/create-post",
+  formData.single("postImage"),
+  createPosting
+);
 router.post("/community/posts/:postId/hasLiked", formData.none(), userHasLiked);
 router.post("/community/:postId/comments", formData.none(), userCommented);
 
