@@ -8,7 +8,7 @@ export const createPosting = async (req, res) => {
       data: {
         client: { connect: { id: req.body.client } },
         postContent: req.body.postContent,
-        postImage: req.body.postImage ?? "",
+        postImage: req.file ? req.file.path : "",
         likeCount: parseInt(req.body.likeCount),
         commentCount: parseInt(req.body.commentCount),
         createdAt: new Date(Date.now()),
@@ -25,7 +25,7 @@ export const createPosting = async (req, res) => {
       data: {
         jobSeeker: { connect: { id: req.body.jobSeeker } },
         postContent: req.body.postContent,
-        postImage: req.body.postImage ?? "",
+        postImage: req.file ? req.file.path : "",
         likeCount: parseInt(req.body.likeCount),
         commentCount: parseInt(req.body.commentCount),
         createdAt: new Date(Date.now()),
@@ -98,4 +98,55 @@ export const userCommented = async (req, res) => {
     res.status(200).json(createComment);
     return;
   }
+};
+
+export const getUsername = async (req, res) => {
+  const userNames = {};
+
+  for (const obj of req.query.ids) {
+    const user = await prisma.user.findUnique({
+      where: { id: obj.userId },
+      select: {
+        firstName: true,
+        middleName: true,
+        lastName: true,
+      },
+    });
+
+    if (user) {
+      userNames[obj.userId] = {
+        firstName: user.firstName,
+        middleName: user.middleName,
+        lastName: user.lastName,
+      };
+    } else {
+      const jobSeeker = await prisma.jobSeeker.findUnique({
+        where: { id: obj.userId },
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              middleName: true,
+              lastName: true,
+            },
+          },
+        },
+      });
+
+      if (jobSeeker?.user) {
+        userNames[obj.userId] = {
+          firstName: jobSeeker.user.firstName,
+          middleName: jobSeeker.user.middleName,
+          lastName: jobSeeker.user.lastName,
+        };
+      }
+    }
+  }
+
+  res.status(200).json({ userNames });
+};
+
+export const getAllPosts = async (req, res) => {
+  const posts = await prisma.post.findMany();
+  res.status(200).json(posts);
 };
