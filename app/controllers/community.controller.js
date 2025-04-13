@@ -64,7 +64,7 @@ export const userHasLiked = async (req, res) => {
     const response = await prisma.like.create({
       data: {
         post: { connect: { id: req.body.post } },
-        jobSeeker: { connect: { id: req.body.jobSeeker } }, //must be the id from jobseeker table not userId
+        jobSeeker: { connect: { id: req.body.jobSeeker } },
         likedAt: new Date(Date.now()),
       },
     });
@@ -110,6 +110,7 @@ export const getUsername = async (req, res) => {
         firstName: true,
         middleName: true,
         lastName: true,
+        profileImage: true,
       },
     });
 
@@ -118,6 +119,7 @@ export const getUsername = async (req, res) => {
         firstName: user.firstName,
         middleName: user.middleName,
         lastName: user.lastName,
+        profileImage: user.profileImage,
       };
     } else {
       const jobSeeker = await prisma.jobSeeker.findUnique({
@@ -128,6 +130,7 @@ export const getUsername = async (req, res) => {
               firstName: true,
               middleName: true,
               lastName: true,
+              profileImage: true,
             },
           },
         },
@@ -138,15 +141,20 @@ export const getUsername = async (req, res) => {
           firstName: jobSeeker.user.firstName,
           middleName: jobSeeker.user.middleName,
           lastName: jobSeeker.user.lastName,
+          profileImage: jobSeeker.user.profileImage,
         };
       }
     }
   }
 
-  res.status(200).json({ userNames });
+  res.status(200).json(userNames);
 };
 
 export const getAllPosts = async (req, res) => {
-  const posts = await prisma.post.findMany();
+  const posts = await prisma.post.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
   res.status(200).json(posts);
 };
