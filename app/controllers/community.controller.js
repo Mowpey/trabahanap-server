@@ -47,30 +47,104 @@ export const deletePosting = async (req, res) => {
 };
 
 export const userHasLiked = async (req, res) => {
-  if (req.body.client) {
+  if (req.body.userType === "client") {
     const response = await prisma.like.create({
       data: {
-        post: { connect: { id: req.body.post } },
-        client: { connect: { id: req.body.client } },
+        post: { connect: { id: req.body.postId } },
+        client: { connect: { id: req.body.userId } },
         likedAt: new Date(Date.now()),
       },
     });
-    console.log("Liked Post Number", req.body.post);
+
+    await prisma.post.update({
+      where: { id: req.body.postId },
+      data: { likeCount: { increment: 1 } },
+    });
+
     res.status(200).json(response);
     return;
   }
 
-  if (req.body.jobSeeker) {
+  if (req.body.userType === "jobSeeker") {
     const response = await prisma.like.create({
       data: {
-        post: { connect: { id: req.body.post } },
-        jobSeeker: { connect: { id: req.body.jobSeeker } },
+        post: { connect: { id: req.body.postId } },
+        jobSeeker: { connect: { id: req.body.userId } },
         likedAt: new Date(Date.now()),
       },
     });
-    console.log("Liked Post Number", req.body.post);
+
     res.status(200).json(response);
     return;
+  }
+};
+
+export const checkIfLiked = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { userId, userType } = req.query;
+
+    if (!postId || !userId || !userType) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    let whereClause = { postId };
+
+    if (userType === "client") {
+      whereClause.clientId = userId;
+    } else if (userType === "jobSeeker") {
+      whereClause.jobSeekerId = userId;
+    }
+
+    const response = await prisma.like.findFirst({
+      where: whereClause,
+      select: {
+        id: true,
+        likedAt: true,
+      },
+    });
+
+    res.status(200).json(response || { likedAt: null });
+  } catch (error) {
+    console.error("Error in checkIfLiked:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const userUnliked = async (req, res) => {
+  try {
+    const { postId, userId, userType } = req.body;
+
+    // First find the like record
+    const like = await prisma.like.findFirst({
+      where: {
+        postId,
+        OR: [
+          { clientId: userType === "client" ? userId : undefined },
+          { jobSeekerId: userType === "jobSeeker" ? userId : undefined },
+        ],
+      },
+    });
+
+    if (!like) {
+      return res.status(404).json({ message: "Like not found" });
+    }
+
+    // Delete the like record
+    const response = await prisma.like.delete({
+      where: { id: like.id },
+    });
+
+    // Update the post's like count
+    await prisma.post.update({
+      where: { id: postId },
+      data: { likeCount: { decrement: 1 } },
+    });
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error in userUnliked:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

@@ -7,6 +7,8 @@ import {
   userCommented,
   getAllPosts,
   getUsername,
+  checkIfLiked,
+  userUnliked,
 } from "../controllers/community.controller.js";
 
 const storage = multer.diskStorage({
@@ -31,7 +33,9 @@ router.post(
   formData.single("postImage"),
   createPosting
 );
-router.post("/community/posts/:postId/hasLiked", formData.none(), userHasLiked);
+router.post("/community/posts/:postId/hasLiked", userHasLiked);
+router.get("/community/posts/:postId/checkIfLiked", checkIfLiked);
+router.delete("/community/posts/:postId/unlike", userUnliked);
 router.post("/community/:postId/comments", formData.none(), userCommented);
 router.get("/community/posts", getAllPosts);
 router.get("/community/getUsername", getUsername);
