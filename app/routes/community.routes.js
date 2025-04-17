@@ -4,11 +4,12 @@ import cryptoRandomString from "crypto-random-string";
 import {
   createPosting,
   userHasLiked,
-  userCommented,
   getAllPosts,
   getUsername,
   checkIfLiked,
   userUnliked,
+  userCommented,
+  getComments,
 } from "../controllers/community.controller.js";
 
 const storage = multer.diskStorage({
@@ -36,8 +37,13 @@ router.post(
 router.post("/community/posts/:postId/hasLiked", userHasLiked);
 router.get("/community/posts/:postId/checkIfLiked", checkIfLiked);
 router.delete("/community/posts/:postId/unlike", userUnliked);
-router.post("/community/:postId/comments", formData.none(), userCommented);
 router.get("/community/posts", getAllPosts);
 router.get("/community/getUsername", getUsername);
+router.post(
+  "/community/posts/:postId/addComment",
+  formData.none(),
+  userCommented
+);
+router.get("/community/posts/:postId/getComments", getComments);
 
 export default router;

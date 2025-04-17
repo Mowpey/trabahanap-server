@@ -164,9 +164,9 @@ model Comment {
   post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId      String    @db.ObjectId
   client      User?      @relation(fields: [clientId], references: [id])
-  clientId    String    @db.ObjectId
+  clientId    String?    @db.ObjectId
   jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId String    @db.ObjectId
+  jobSeekerId String?    @db.ObjectId
   comment     String
   createdAt   DateTime
 

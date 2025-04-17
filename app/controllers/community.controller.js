@@ -149,29 +149,90 @@ export const userUnliked = async (req, res) => {
 };
 
 export const userCommented = async (req, res) => {
-  const postExists = await prisma.post.findUnique({
-    where: { id: postId },
-  });
+  try {
+    const { postId, comment, userId, userType } = req.body;
 
-  if (!postExists) {
-    return res
-      .status(404)
-      .json({ message: `Post with ID ${postId} not found.` });
-  }
+    if (!postId || !comment || !userId || !userType) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
 
-  if (req.body.client) {
-    const createComment = await prisma.comment.create({
-      data: {
-        post: { connect: { id: req.body.post } },
-        client: { connect: { id: req.body.client } },
-        comment: req.body.comment,
-        createdAt: new Date(Date.now()),
-      },
+    const postExists = await prisma.post.findUnique({
+      where: { id: postId },
     });
-    console.log("Successfully created client comment!", createComment);
-    res.status(200).json(createComment);
-    return;
+
+    if (!postExists) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    if (userType === "client") {
+      const response = await prisma.comment.create({
+        data: {
+          post: { connect: { id: postId } },
+          client: { connect: { id: userId } },
+          comment: comment.comment || comment,
+          createdAt: new Date(Date.now()),
+        },
+      });
+
+      return res.status(200).json(response);
+    }
+
+    if (userType === "jobSeeker") {
+      const jobSeeker = await prisma.jobSeeker.findUnique({
+        where: { userId },
+      });
+
+      if (!jobSeeker) {
+        return res.status(404).json({ message: "Job seeker not found" });
+      }
+
+      const response = await prisma.comment.create({
+        data: {
+          post: { connect: { id: postId } },
+          jobSeeker: { connect: { id: jobSeeker.id } },
+          comment: comment.comment || comment,
+          createdAt: new Date(Date.now()),
+        },
+      });
+
+      return res.status(200).json(response);
+    }
+
+    return res.status(400).json({ message: "Invalid user type" });
+  } catch (error) {
+    console.error("Error in userCommented:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
+};
+
+export const getComments = async (req, res) => {
+  const { postId } = req.params;
+  const comments = await prisma.comment.findMany({
+    where: { postId },
+    include: {
+      client: {
+        select: {
+          firstName: true,
+          middleName: true,
+          lastName: true,
+          profileImage: true,
+        },
+      },
+      jobSeeker: {
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              middleName: true,
+              lastName: true,
+              profileImage: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  res.status(200).json(comments);
 };
 
 export const getUsername = async (req, res) => {
