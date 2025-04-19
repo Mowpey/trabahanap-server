@@ -187,24 +187,19 @@ docker exec -it mongo1 mongosh --eval "rs.status()"
     }
 </details>
 
-9. Connect to the mongodb using one of the ff:
-```sh
-mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=mongoReplica
-mongodb://localhost:27017,localhost:27018,localhost:27019/my-database-name?replicaSet=mongoReplica
-```
-10. To force a mongo1 to be primary use the ff. command ** TAKE NOTE! mongo2 in docker exec -it mongo2 is replaceable by any replica set in which it has the PRIMARY status (e.g. if mongo1 is primary, use docker exec -it mongo1 ... or if mongo3 use, docker exec -it mongo3 ... ) **:
+
+9. To force a mongo1 to be primary use the ff. command ** TAKE NOTE! mongo2 in docker exec -it mongo2 is replaceable by any replica set in which it has the PRIMARY status (e.g. if mongo1 is primary, use docker exec -it mongo1 ... or if mongo3 use, docker exec -it mongo3 ... ) **:
 ```sh
 docker exec -it mongo2 mongosh --eval "rs.reconfig({ _id: 'mongoReplica', members: [{ _id: 0, host: 'mongo1:27017', priority: 2 }, { _id: 1, host: 'mongo2:27017', priority: 1 }, { _id: 2, host: 'mongo3:27017', priority: 1 }] })"
-
+```
+10. Connect to the mongodb using one of the ff (Recommended: 2nd option):
+```sh
+mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=mongoReplica 
+mongodb://localhost:27017,localhost:27018,localhost:27019/my-database-name?replicaSet=mongoReplica
 ```
 
 ## Setting up Prisma
  1. Create a .env file containing mongodb URI and paste it in the DATABASE_URL
- 2. If your mongo compass or the command prisma db push wont go through with an error of a server timeout,
-    make sure you have mongo1 cluster as the primary node. Use this command to force it.
-```sh
-docker exec -it mongo2 mongosh --eval "rs.reconfig({ _id: 'mongoReplica', members: [{ _id: 0, host: 'mongo1:27017', priority: 2 }, { _id: 1, host: 'mongo2:27017', priority: 1 }, { _id: 2, host: 'mongo3:27017', priority: 1 }] })"
-```
 
 
 ## Start the Server
