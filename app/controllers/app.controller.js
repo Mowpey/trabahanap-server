@@ -100,3 +100,110 @@ export const editClientListings = async (req, res) => {
   console.log("Successfully Edited Job Request!", response);
   res.status(200).json(response);
 };
+
+export const getJobRequests = async (req, res) => {
+  try {
+    const jobRequests = await prisma.jobRequest.findMany({
+      where: {
+        jobStatus: "open",
+      },
+      include: { client: true },
+    });
+
+    res.json(jobRequests);
+  } catch (error) {
+    console.error("Error fetching job requests:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getJobSeekerTags = async (req, res) => {
+  try {
+    const jobSeekerId = req.user.id; // Adjust based on your auth setup
+    
+    const jobSeeker = await prisma.jobSeeker.findUnique({
+      where: { id: jobSeekerId },
+      select: {
+        jobTags: true
+      }
+    });
+
+    if (!jobSeeker) {
+      return res.status(404).json({ error: "Job seeker not found" });
+    }
+
+    res.json({ jobTags: jobSeeker.jobTags || [] });
+  } catch (error) {
+    console.error("Error fetching job seeker tags:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getMyJobs = async (req, res) => {
+  try {
+    // Get job seeker ID from auth token or session
+    const jobSeekerId = req.user.id; // Adjust based on your auth setup
+    
+    const myJobs = await prisma.jobRequest.findMany({
+      where: {
+        jobSeekerId: jobSeekerId,
+        jobStatus: {
+          in: ["accepted", "pending"] // Only show accepted/pending jobs
+        }
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      },
+      orderBy: {
+        datePosted: "desc"
+      }
+    });
+
+    res.json(myJobs);
+  } catch (error) {
+    console.error("Error fetching job seeker's jobs:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const markJobAsCompleted = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const jobSeekerId = req.user.id; // Adjust based on your auth setup
+
+    // Verify job exists and belongs to this job seeker
+    const job = await prisma.jobRequest.findFirst({
+      where: {
+        id: jobId,
+        jobSeekerId: jobSeekerId
+      }
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: "Job not found or not assigned to you" });
+    }
+
+    // Update job status
+    const updatedJob = await prisma.jobRequest.update({
+      where: { id: jobId},
+      data: {
+        jobStatus: "completed",
+        completedAt: new Date()
+      },
+      include: {
+        client: true
+      }
+    });
+
+    res.json(updatedJob);
+  } catch (error) {
+    console.error("Error marking job as completed:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};    

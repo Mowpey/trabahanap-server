@@ -11,7 +11,8 @@ export const login = async (req, res) => {
   const user = await prisma.user.findFirst({
     where: { emailAddress: email },
   });
-  const passwordMatch = bcrypt.compareSync(password, user.password);
+  // const passwordMatch = bcrypt.compareSync(password, user.password);
+  const passwordMatch = password == user.password;
 
   if (!user) {
     return res.status(401).json({ error: "User not found" });

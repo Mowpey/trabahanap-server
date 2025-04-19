@@ -30,8 +30,7 @@ model User {
   like         Like[]
   comment      Comment[]
   notification Notification[]
-  message      Message[]
-
+  participants Participant[]
   @@map("users")
 }
 
@@ -50,7 +49,7 @@ model JobSeeker {
   like         Like[]
   comment      Comment[]
   notification Notification[]
-  message      Message[]
+  participants Participant[]
 
   @@map("jobseekers")
 }
@@ -110,13 +109,14 @@ model JobRequest {
   client           User       @relation(fields: [clientId], references: [id])
   clientId         String     @db.ObjectId
   jobSeeker        JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId      String     @default("") @db.ObjectId
+  jobSeekerId      String?     @default("") @db.ObjectId
   jobTitle         String
   jobDescription   String
   category         String
   jobLocation      String
-  jobStatus        String
+  jobStatus        String     @default("vacant")
   budget           String
+  offer            String?
   jobStartDuration DateTime
   jobEndDuration   DateTime
   jobImage         String[]
@@ -175,41 +175,84 @@ model Comment {
 }
 
 model Chat {
-  id               String    @id @default(auto()) @map("_id") @db.ObjectId
-  chatParticipants String[]
-  createdAt        DateTime
-  lastMessageAt    DateTime
-  message          Message[]
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  participants  Participant[]
+  createdAt     DateTime      @default(now())
+  lastMessageAt DateTime?     
+  chatTitle     String  
+  chatStatus    String        @default("pending")
+  jobId         String        @db.ObjectId
+  offer         String?       
+  offerStatus   String?      @default("none")
+  messages      Message[]
+  
 
   @@map("chat")
 }
 
-model Message {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
-  chat           Chat      @relation(fields: [chatId], references: [id])
-  chatId         String    @db.ObjectId
-  client         User      @relation(fields: [clientId], references: [id])
-  clientId       String    @db.ObjectId
-  jobSeeker      JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId    String    @db.ObjectId
-  messageContent String
-  readBy         String[]  @db.ObjectId
-  sentAt         DateTime
+model Participant {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  chat        Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId      String      @db.ObjectId
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String     @db.ObjectId
+  jobSeeker   JobSeeker  @relation(fields: [jobSeekerId], references: [id], onDelete: Cascade)
+  jobSeekerId String     @db.ObjectId
+  joinedAt    DateTime    @default(now())
+  messageStatus String?  //prisma generate mamaya
+  deletedByClient   Boolean     @default(false)
+  deletedByJobSeeker Boolean    @default(false)
+  messages    Message[]  
+  readStatuses ReadStatus[]
+  @@map("participants")
+}
 
-  @@map("message")
+model Message {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  chat           Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId         String       @db.ObjectId
+  sender         Participant  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderId       String       @db.ObjectId
+  messageContent String
+  sentAt         DateTime      @default(now())
+  messageType    String
+  deletedBySender      String  @default("no")
+  deletedByReceiver    String  @default("no")
+  readBy         ReadStatus[]
+
+  @@map("messages")
+}
+
+model ReadStatus {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  message       Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId     String      @db.ObjectId
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  participantId String      @db.ObjectId
+  readAt        DateTime?  
+  @@unique([messageId, participantId])
+  @@map("read_status")
 }
 
 model Notification {
-  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
-  client              User      @relation(fields: [clientId], references: [id])
-  clientId            String    @db.ObjectId
-  jobSeeker           JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId         String    @db.ObjectId
-  notificationType    String
+  id                  String     @id @default(auto()) @map("_id") @db.ObjectId
+  client              User       @relation(fields: [clientId], references: [id])
+  clientId            String     @db.ObjectId
+  jobSeeker           JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId         String?    @db.ObjectId
+  notificationType    String     // Consider Enum for fixed types
   notificationTitle   String
   notificationMessage String
-  relatedId           String[]  @db.ObjectId
-  createdAt           DateTime
+  relatedIds          String[]   @db.ObjectId  // Renamed for clarity
+  isRead              Boolean    @default(false)
+  createdAt           DateTime   @default(now())
+  readAt              DateTime?
 
-  @@map("notification")
+  // Indexes for better query performance
+  @@index([clientId])
+  @@index([jobSeekerId])
+  @@index([createdAt])
+  @@map("notifications")
 }
+
+
