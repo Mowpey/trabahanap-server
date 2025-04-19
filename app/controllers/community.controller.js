@@ -3,38 +3,59 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const createPosting = async (req, res) => {
-  if (req.body.client) {
-    const response = await prisma.post.create({
-      data: {
-        client: { connect: { id: req.body.client } },
-        postContent: req.body.postContent,
-        postImage: req.file ? req.file.path : "",
-        likeCount: parseInt(req.body.likeCount),
-        commentCount: parseInt(req.body.commentCount),
-        createdAt: new Date(Date.now()),
-      },
-    });
-    console.log("Successfully made a community post!", response);
-    res.status(200).json(response);
+  try {
+    if (req.body.client) {
+      const response = await prisma.post.create({
+        data: {
+          client: { connect: { id: req.body.client } },
+          postContent: req.body.postContent,
+          postImage: req.file ? req.file.path : "",
+          likeCount: parseInt(req.body.likeCount) || 0,
+          commentCount: parseInt(req.body.commentCount) || 0,
+          createdAt: new Date(Date.now()),
+        },
+      });
+      console.log("Successfully made a community post!", response);
+      return res.status(200).json(response);
+    }
 
-    return;
-  }
+    if (req.body.jobSeeker) {
+      const jobSeeker = await prisma.jobSeeker.findUnique({
+        where: { userId: req.body.jobSeeker },
+        select: { id: true },
+      });
 
-  if (req.body.jobSeeker) {
-    const response = await prisma.post.create({
-      data: {
-        jobSeeker: { connect: { id: req.body.jobSeeker } },
-        postContent: req.body.postContent,
-        postImage: req.file ? req.file.path : "",
-        likeCount: parseInt(req.body.likeCount),
-        commentCount: parseInt(req.body.commentCount),
-        createdAt: new Date(Date.now()),
-      },
-    });
-    console.log("Successfully made a community post!", response);
-    res.status(200).json(response);
+      if (!jobSeeker) {
+        return res
+          .status(404)
+          .json({ message: "JobSeeker not found for the provided userId" });
+      }
 
-    return;
+      const response = await prisma.post.create({
+        data: {
+          jobSeeker: { connect: { id: jobSeeker.id } },
+          postContent: req.body.postContent,
+          postImage: req.file ? req.file.path : "",
+          likeCount: parseInt(req.body.likeCount) || 0,
+          commentCount: parseInt(req.body.commentCount) || 0,
+          createdAt: new Date(Date.now()),
+        },
+      });
+      console.log("Successfully made a community post!", response);
+      return res.status(200).json(response);
+    }
+
+    return res
+      .status(400)
+      .json({ message: "Client or JobSeeker User ID must be provided" });
+  } catch (error) {
+    console.error("Error creating post:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        message: "Referenced record (Client or JobSeeker) not found.",
+      });
+    }
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -47,35 +68,61 @@ export const deletePosting = async (req, res) => {
 };
 
 export const userHasLiked = async (req, res) => {
-  if (req.body.userType === "client") {
-    const response = await prisma.like.create({
-      data: {
-        post: { connect: { id: req.body.postId } },
-        client: { connect: { id: req.body.userId } },
-        likedAt: new Date(Date.now()),
-      },
-    });
+  try {
+    if (req.body.userType === "client") {
+      const response = await prisma.like.create({
+        data: {
+          post: { connect: { id: req.body.postId } },
+          client: { connect: { id: req.body.userId } },
+          likedAt: new Date(Date.now()),
+        },
+      });
 
-    await prisma.post.update({
-      where: { id: req.body.postId },
-      data: { likeCount: { increment: 1 } },
-    });
+      await prisma.post.update({
+        where: { id: req.body.postId },
+        data: { likeCount: { increment: 1 } },
+      });
 
-    res.status(200).json(response);
-    return;
-  }
+      res.status(200).json(response);
+      return;
+    }
 
-  if (req.body.userType === "jobSeeker") {
-    const response = await prisma.like.create({
-      data: {
-        post: { connect: { id: req.body.postId } },
-        jobSeeker: { connect: { id: req.body.userId } },
-        likedAt: new Date(Date.now()),
-      },
-    });
+    if (req.body.userType === "job-seeker") {
+      const jobSeeker = await prisma.jobSeeker.findUnique({
+        where: { userId: req.body.userId },
+        select: { id: true },
+      });
 
-    res.status(200).json(response);
-    return;
+      if (!jobSeeker) {
+        return res
+          .status(404)
+          .json({ message: "JobSeeker not found for the provided userId" });
+      }
+
+      const response = await prisma.like.create({
+        data: {
+          post: { connect: { id: req.body.postId } },
+          jobSeeker: { connect: { id: jobSeeker.id } },
+          likedAt: new Date(Date.now()),
+        },
+      });
+
+      await prisma.post.update({
+        where: { id: req.body.postId },
+        data: { likeCount: { increment: 1 } },
+      });
+
+      res.status(200).json(response);
+      return;
+    }
+
+    return res.status(400).json({ message: "Invalid user type" });
+  } catch (error) {
+    console.error("Error in userHasLiked:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({ message: "Post or user not found" });
+    }
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -92,22 +139,27 @@ export const checkIfLiked = async (req, res) => {
 
     if (userType === "client") {
       whereClause.clientId = userId;
-    } else if (userType === "jobSeeker") {
-      whereClause.jobSeekerId = userId;
+    } else if (userType === "job-seeker") {
+      const jobSeeker = await prisma.jobSeeker.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+
+      if (!jobSeeker) {
+        return res.status(404).json({ message: "JobSeeker not found" });
+      }
+
+      whereClause.jobSeekerId = jobSeeker.id;
     }
 
     const response = await prisma.like.findFirst({
       where: whereClause,
-      select: {
-        id: true,
-        likedAt: true,
-      },
     });
 
     res.status(200).json(response || { likedAt: null });
   } catch (error) {
     console.error("Error in checkIfLiked:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -115,27 +167,39 @@ export const userUnliked = async (req, res) => {
   try {
     const { postId, userId, userType } = req.body;
 
-    // First find the like record
+    if (!postId || !userId || !userType) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    let whereClause = { postId };
+
+    if (userType === "client") {
+      whereClause.clientId = userId;
+    } else if (userType === "job-seeker") {
+      const jobSeeker = await prisma.jobSeeker.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+
+      if (!jobSeeker) {
+        return res.status(404).json({ message: "JobSeeker not found" });
+      }
+
+      whereClause.jobSeekerId = jobSeeker.id;
+    }
+
     const like = await prisma.like.findFirst({
-      where: {
-        postId,
-        OR: [
-          { clientId: userType === "client" ? userId : undefined },
-          { jobSeekerId: userType === "jobSeeker" ? userId : undefined },
-        ],
-      },
+      where: whereClause,
     });
 
     if (!like) {
       return res.status(404).json({ message: "Like not found" });
     }
 
-    // Delete the like record
     const response = await prisma.like.delete({
       where: { id: like.id },
     });
 
-    // Update the post's like count
     await prisma.post.update({
       where: { id: postId },
       data: { likeCount: { decrement: 1 } },
@@ -144,13 +208,13 @@ export const userUnliked = async (req, res) => {
     res.status(200).json(response);
   } catch (error) {
     console.error("Error in userUnliked:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export const userCommented = async (req, res) => {
   try {
-    const { postId, comment, userId, userType } = req.body;
+    const { postId, comment, userId, userType, parentCommentId } = req.body;
 
     if (!postId || !comment || !userId || !userType) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -164,43 +228,48 @@ export const userCommented = async (req, res) => {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    if (userType === "client") {
-      const response = await prisma.comment.create({
-        data: {
-          post: { connect: { id: postId } },
-          client: { connect: { id: userId } },
-          comment: comment.comment || comment,
-          createdAt: new Date(Date.now()),
-        },
-      });
+    let commentData = {
+      post: { connect: { id: postId } },
+      comment: comment.comment || comment,
+      createdAt: new Date(Date.now()),
+    };
 
-      return res.status(200).json(response);
+    if (parentCommentId) {
+      commentData.parentComment = { connect: { id: parentCommentId } };
     }
 
-    if (userType === "jobSeeker") {
+    if (userType === "client") {
+      commentData.client = { connect: { id: userId } };
+    } else if (userType === "job-seeker") {
       const jobSeeker = await prisma.jobSeeker.findUnique({
         where: { userId },
+        select: { id: true },
       });
 
       if (!jobSeeker) {
-        return res.status(404).json({ message: "Job seeker not found" });
+        return res.status(404).json({ message: "JobSeeker not found" });
       }
 
-      const response = await prisma.comment.create({
-        data: {
-          post: { connect: { id: postId } },
-          jobSeeker: { connect: { id: jobSeeker.id } },
-          comment: comment.comment || comment,
-          createdAt: new Date(Date.now()),
-        },
-      });
-
-      return res.status(200).json(response);
+      commentData.jobSeeker = { connect: { id: jobSeeker.id } };
+    } else {
+      return res.status(400).json({ message: "Invalid user type" });
     }
 
-    return res.status(400).json({ message: "Invalid user type" });
+    const response = await prisma.comment.create({ data: commentData });
+
+    if (!parentCommentId) {
+      await prisma.post.update({
+        where: { id: postId },
+        data: { commentCount: { increment: 1 } },
+      });
+    }
+
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Error in userCommented:", error);
+    if (error.code === "P2025") {
+      return res.status(404).json({ message: "Parent comment not found" });
+    }
     return res.status(500).json({ message: "Internal server error" });
   }
 };
