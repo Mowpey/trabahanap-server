@@ -116,9 +116,7 @@ model JobRequest {
   jobLocation      String
   jobStatus        String     @default("vacant")
   budget           String
-  offer            String?
-  jobStartDuration DateTime
-  jobEndDuration   DateTime
+  offer            String? 
   jobDuration      String     @default("")
   jobImage         String[]
   datePosted       DateTime   @default(now())
