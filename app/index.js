@@ -4,8 +4,6 @@ import appRouter from "./routes/app.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import { initializeSocketIO } from "./controllers/socket.io.controller.js";
-import jobRequestRoutes from "./routes/jobrequest.routes.js";
-import jobSeekerRoutes from "./routes/jobseekertags.routes.js";
 import communityRoutes from "./routes/community.routes.js";
 import cors from "cors";
 
@@ -24,8 +22,6 @@ app.set('socketio',io);
 app.use(authRoutes);
 app.use(appRouter);
 app.use(chatRoutes);
-app.use("/api", jobRequestRoutes);
-app.use(jobSeekerRoutes);
 app.use(communityRoutes);
 
 const PORT = 3000;
