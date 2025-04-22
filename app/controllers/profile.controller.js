@@ -104,8 +104,17 @@ export const updateUserProfile = async (req, res) => {
     }
 
     if (userType === "job-seeker") {
+      const jobSeeker = await prisma.jobSeeker.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+
+      if (!jobSeeker) {
+        return res.status(404).json({ message: "JobSeeker not found" });
+      }
+
       const updatedJobSeeker = await prisma.jobSeeker.update({
-        where: { userId },
+        where: { id: jobSeeker.id },
         data: {
           user: {
             update: {
