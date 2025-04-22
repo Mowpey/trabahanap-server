@@ -43,7 +43,7 @@ export function initializeSocketIO(httpServer) {
           where: { userId },
           select: { userId: true }
         });
-    
+        
         // Fetch all chats with necessary relations
         const chats = await prisma.chat.findMany({
           where: {
@@ -185,9 +185,9 @@ export function initializeSocketIO(httpServer) {
           where: { userId },
           select: { id: true },
         });
-    
+        
         const senderType = jobSeeker ? "jobSeeker" : "client";
-        const actualSenderId = jobSeeker ? jobSeeker.id : userId; // Use Job Seeker ID if applicable
+        const actualSenderId = userId;
     
         // 🔍 Fetch chat and participants
         const chat = await prisma.chat.findUnique({

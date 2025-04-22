@@ -149,7 +149,7 @@ export const getJobSeekerTags = async (req, res) => {
     const jobSeekerId = req.user.id; // Adjust based on your auth setup
 
     const jobSeeker = await prisma.jobSeeker.findUnique({
-      where: { id: jobSeekerId },
+      where: { userId: jobSeekerId },
       select: {
         jobTags: true,
       },
