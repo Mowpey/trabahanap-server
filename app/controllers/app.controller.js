@@ -147,12 +147,12 @@ export const getJobRequests = async (req, res) => {
 export const getJobSeekerTags = async (req, res) => {
   try {
     const jobSeekerId = req.user.id; // Adjust based on your auth setup
-    
+
     const jobSeeker = await prisma.jobSeeker.findUnique({
       where: { userId: jobSeekerId },
       select: {
-        jobTags: true
-      }
+        jobTags: true,
+      },
     });
 
     if (!jobSeeker) {
@@ -170,26 +170,26 @@ export const getMyJobs = async (req, res) => {
   try {
     // Get job seeker ID from auth token or session
     const jobSeekerId = req.user.id; // Adjust based on your auth setup
-    
+
     const myJobs = await prisma.jobRequest.findMany({
       where: {
         jobSeekerId: jobSeekerId,
         jobStatus: {
-          in: ["accepted", "pending"] // Only show accepted/pending jobs
-        }
+          in: ["accepted", "pending"], // Only show accepted/pending jobs
+        },
       },
       include: {
         client: {
           select: {
             id: true,
             firstName: true,
-            lastName: true
-          }
-        }
+            lastName: true,
+          },
+        },
       },
       orderBy: {
-        datePosted: "desc"
-      }
+        datePosted: "desc",
+      },
     });
 
     res.json(myJobs);
@@ -208,24 +208,26 @@ export const markJobAsCompleted = async (req, res) => {
     const job = await prisma.jobRequest.findFirst({
       where: {
         id: jobId,
-        jobSeekerId: jobSeekerId
-      }
+        jobSeekerId: jobSeekerId,
+      },
     });
 
     if (!job) {
-      return res.status(404).json({ error: "Job not found or not assigned to you" });
+      return res
+        .status(404)
+        .json({ error: "Job not found or not assigned to you" });
     }
 
     // Update job status
     const updatedJob = await prisma.jobRequest.update({
-      where: { id: jobId},
+      where: { id: jobId },
       data: {
         jobStatus: "completed",
-        completedAt: new Date()
+        completedAt: new Date(),
       },
       include: {
-        client: true
-      }
+        client: true,
+      },
     });
 
     res.json(updatedJob);
@@ -233,4 +235,4 @@ export const markJobAsCompleted = async (req, res) => {
     console.error("Error marking job as completed:", error);
     res.status(500).json({ error: "Server error" });
   }
-};    
+};

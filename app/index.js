@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import { initializeSocketIO } from "./controllers/socket.io.controller.js";
 import communityRoutes from "./routes/community.routes.js";
+import profileRoutes from "./routes/profile.routes.js";
 import cors from "cors";
 
 const app = express();
@@ -31,7 +32,7 @@ app.use(authRoutes);
 app.use(appRouter);
 app.use(chatRoutes);
 app.use(communityRoutes);
-
+app.use(profileRoutes);
 const PORT = 3000;
 httpServer.listen(PORT, () => {
   console.log("Server running on port ", PORT);
