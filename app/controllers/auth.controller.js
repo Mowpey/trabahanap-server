@@ -11,8 +11,9 @@ export const login = async (req, res) => {
   const user = await prisma.user.findFirst({
     where: { emailAddress: email },
   });
-  // const passwordMatch = bcrypt.compareSync(password, user.password);
-  const passwordMatch = password == user.password;
+
+  const passwordMatch = bcrypt.compareSync(password, user.password);
+  // const passwordMatch = password == user.password;
 
   if (!user) {
     return res.status(401).json({ error: "User not found" });
@@ -25,7 +26,7 @@ export const login = async (req, res) => {
   const token = jwt.sign(
     { id: user.id, email: user.emailAddress },
     process.env.JWT_SECRET,
-    { expiresIn: "7d" },
+    { expiresIn: "7d" }
   );
   res.json({ message: "Login successful", token, user });
 };
