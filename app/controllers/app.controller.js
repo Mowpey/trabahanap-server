@@ -236,3 +236,30 @@ export const markJobAsCompleted = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+export const reviewnRating =  async (req, res) => {
+  console.log("Received PATCH for:", req.params.jobId, req.body);
+  const { id } = req.params;
+  const { rating, review } = req.body;
+
+  if (!rating || !review) {
+    return res.status(400).json({ message: "Rating and review are required." });
+  }
+
+  try {
+    const job = await prisma.jobRequest.update({
+      where: { id },
+      data: {
+        jobRating: rating,
+        jobReview: review,
+        verifiedAt: new Date(),
+        jobStatus: "verified",
+      },
+    });
+
+    res.status(200).json({ message: "Job verified successfully.", job });
+  } catch (error) {
+    console.error("Verification error:", error);
+    res.status(500).json({ message: "Failed to verify job." });
+  }
+};
