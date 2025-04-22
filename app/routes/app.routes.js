@@ -115,4 +115,13 @@ router.use('/uploads/messages', express.static(
     }
   }
 ));
+router.use('/uploads/profiles', express.static(
+  path.join(__dirname, '../assets/profiles'), 
+  {
+    maxAge: '1d',
+    setHeaders: (res) => {
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    }
+  }
+));
 export default router;
