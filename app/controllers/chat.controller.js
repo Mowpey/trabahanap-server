@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
+import { Console } from "console";
 
 const prisma = new PrismaClient();
 
@@ -409,3 +410,170 @@ export const getReadStatus = async (req, res) => {
   }
 };
 
+export const getJobSeekerTags = async (req, res) => {
+  try {
+    const jobSeekerId = req.params.id; // Adjust based on your auth setup
+    console.log("THe id is",jobSeekerId);
+
+    const jobSeeker = await prisma.jobSeeker.findUnique({
+      where: { userId: jobSeekerId },
+      select: {
+        jobTags: true,
+      },
+    });
+
+    if (!jobSeeker) {
+      return res.status(404).json({ error: "Job seeker not found" });
+    }
+
+    res.json({ jobTags: jobSeeker.jobTags || [] });
+  } catch (error) {
+    console.error("Error fetching job seeker tags:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    // Get the job seeker with all related data
+    const jobSeeker = await prisma.jobSeeker.findUnique({
+      where: { userId },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            suffixName: true,
+            profileImage: true,
+            emailAddress: true,
+            barangay: true,
+            street: true,
+            houseNumber: true,
+            gender: true,
+            birthday: true,
+          },
+        },
+        achievement: {
+          select: {
+            id: true,
+            achievementName: true,
+            jobRequired: true,
+            achievementIcon: true,
+          },
+        },
+        jobRequest: {
+          where: {
+            AND: [
+              { jobStatus: 'verified' },
+            ]
+          },
+          select: { 
+            jobRating: true,
+            jobReview: true,
+            completedAt: true,
+            verifiedAt: true
+          }
+        }
+      },
+    });
+
+    if (!jobSeeker) {
+      return res.status(404).json({ message: "Job seeker not found" });
+    }
+
+    // Calculate average rating and completed jobs
+    const completedJobs = jobSeeker.jobRequest.length;
+    const totalRating = jobSeeker.jobRequest.reduce((sum, job) => sum + (job.jobRating || 0), 0);
+    const averageRating = completedJobs > 0 ? totalRating / completedJobs : 0;
+
+    // Transform achievements to match the interface
+    const achievements = jobSeeker.achievement.map(achievement => ({
+      id: achievement.id,
+      title: achievement.achievementName,
+      description: `Complete ${achievement.jobRequired} jobs`,
+      icon: achievement.achievementIcon,
+      color: '#4CAF50' // Default color, can be customized
+    }));
+
+    // Transform feedbacks
+    const feedbacks = jobSeeker.jobRequest
+      .filter(job => job.jobReview)
+      .map(job => ({
+        id: job.id,
+        rating: job.jobRating || 0,
+        comment: job.jobReview,
+        date: job.verifiedAt.toISOString(), // Using verifiedAt as the review date
+        anonymousName: 'Anonymous Client' // Since we don't store client names in reviews
+      }));
+
+    // Calculate years of experience (assuming it's based on first job completion)
+    const firstJobDate = jobSeeker.jobRequest.length > 0 
+      ? new Date(Math.min(...jobSeeker.jobRequest.map(job => job.verifiedAt)))
+      : new Date();
+    const yearsExperience = Math.floor((new Date() - firstJobDate) / (1000 * 60 * 60 * 24 * 365));
+
+    const response = {
+      name: `${jobSeeker.user.firstName}  ${jobSeeker.user.middleName} ${jobSeeker.user.lastName}`,
+      profileImage: jobSeeker.user.profileImage || '',
+      address: `${jobSeeker.user.houseNumber || ''} ${jobSeeker.user.street}, ${jobSeeker.user.barangay}`,
+      rating: averageRating,
+      completedJobs,
+      yearsExperience,
+      skills: [], // We'll need to fetch job tags separately or modify the schema
+      achievements,
+      email: jobSeeker.user.emailAddress,
+      phoneNumber: '', // Not currently stored in the schema
+      gender: jobSeeker.user.gender,
+      birthday: jobSeeker.user.birthday.toISOString(),
+      feedbacks
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getReviews = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Get all verified jobs for this job seeker with reviews
+    const jobs = await prisma.jobRequest.findMany({
+      where: {
+        AND: [
+          { jobStatus: 'verified' },
+          { jobSeekerId: userId }
+        ]
+      },
+      select: {
+        id: true,
+        jobRating: true,
+        jobReview: true,
+        verifiedAt: true,
+        jobTitle: true
+      }
+    });
+
+    // Transform the jobs into feedback format
+    const feedbacks = jobs
+      .filter(job => job.jobReview) // Only include jobs with reviews
+      .map(job => ({
+        id: job.id,
+        rating: job.jobRating || 0,
+        comment: job.jobReview,
+        date: job.verifiedAt.toISOString(),
+        jobTitle: job.jobTitle,
+        anonymousName: 'Anonymous Client'
+      }));
+
+    return res.status(200).json(feedbacks);
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
