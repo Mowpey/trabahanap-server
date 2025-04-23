@@ -1,261 +1,261 @@
-generator client {
-  provider = "prisma-client-js"
-}
+  generator client {
+    provider = "prisma-client-js"
+  }
 
-datasource db {
-  provider = "mongodb"
-  url      = env("DATABASE_URL")
-}
+  datasource db {
+    provider = "mongodb"
+    url      = env("DATABASE_URL")
+  }
 
-model User {
-  id           String         @id @default(auto()) @map("_id") @db.ObjectId
-  firstName    String
-  middleName   String?
-  lastName     String
-  suffixName   String?
-  gender       String
-  birthday     DateTime
-  age          Int
-  emailAddress String
-  password     String
-  profileImage String?
-  bio          String?
-  barangay     String
-  street       String
-  houseNumber  String?
-  userType     String
-  jobSeeker    JobSeeker?
-  jobRequest   JobRequest[]
-  post         Post[]
-  like         Like[]
-  comment      Comment[]
-  notification Notification[]
-  participants Participant[]
-  @@map("users")
-}
+  model User {
+    id           String         @id @default(auto()) @map("_id") @db.ObjectId
+    firstName    String
+    middleName   String?
+    lastName     String
+    suffixName   String?
+    gender       String
+    birthday     DateTime
+    age          Int
+    emailAddress String
+    password     String
+    profileImage String?
+    bio          String?
+    barangay     String
+    street       String
+    houseNumber  String?
+    userType     String
+    jobSeeker    JobSeeker?
+    jobRequest   JobRequest[]
+    post         Post[]
+    like         Like[]
+    comment      Comment[]
+    notification Notification[]
+    participants Participant[]
+    @@map("users")
+  }
 
-model JobSeeker {
-  id           String         @id @default(auto()) @map("_id") @db.ObjectId
-  user         User           @relation(fields: [userId], references: [id])
-  userId       String         @unique @db.ObjectId
-  availability Boolean
-  credentials  String?
-  hourlyRate   String
-  jobTags      JobTag[]
-  achievement  Achievement[]
-  milestone    Milestone[]
-  jobRequest   JobRequest[]
-  post         Post[]
-  like         Like[]
-  comment      Comment[]
-  notification Notification[]
-  participants Participant[]
+  model JobSeeker {
+    id           String         @id @default(auto()) @map("_id") @db.ObjectId
+    user         User           @relation(fields: [userId], references: [id])
+    userId       String         @unique @db.ObjectId
+    availability Boolean
+    credentials  String?
+    hourlyRate   String
+    jobTags      JobTag[]
+    achievement  Achievement[]
+    milestone    Milestone[]
+    jobRequest   JobRequest[]
+    post         Post[]
+    like         Like[]
+    comment      Comment[]
+    notification Notification[]
+    participants Participant[]
 
-  @@map("jobseekers")
-}
+    @@map("jobseekers")
+  }
 
-model Achievement {
-  id               String    @id @default(auto()) @map("_id") @db.ObjectId
-  achievementName  String
-  jobRequired      String
-  requiredJobCount Int
-  achievementIcon  String
-  jobSeeker        JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId      String    @db.ObjectId
+  model Achievement {
+    id               String    @id @default(auto()) @map("_id") @db.ObjectId
+    achievementName  String
+    jobRequired      String
+    requiredJobCount Int
+    achievementIcon  String
+    jobSeeker        JobSeeker @relation(fields: [jobSeekerId], references: [id])
+    jobSeekerId      String    @db.ObjectId
 
-  @@map("achievements")
-}
+    @@map("achievements")
+  }
 
-model Milestone {
-  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
-  milestoneTitle       String
-  milestoneDescription String
-  jobsCompleted        Int
-  experienceLevel      String
-  achievedAt           DateTime  @default(value: now())
-  jobSeeker            JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId          String    @db.ObjectId
+  model Milestone {
+    id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+    milestoneTitle       String
+    milestoneDescription String
+    jobsCompleted        Int
+    experienceLevel      String
+    achievedAt           DateTime  @default(value: now())
+    jobSeeker            JobSeeker @relation(fields: [jobSeekerId], references: [id])
+    jobSeekerId          String    @db.ObjectId
 
-  @@map("milestones")
-}
+    @@map("milestones")
+  }
 
-enum JobTag {
-  plumbing
-  electricalRepairs
-  carpentry
-  roofRepair
-  paintingServices
-  welding
-  glassInstallation
-  airconRepairAndCleaning
-  applianceRepair
-  pestControlServices
-  autoMechanic
-  carWash
-  motorcycleRepair
-  carAirconRepair
-  windowTinting
-  caregiver
-  personalDriver
-  massageTherapy
-  petGroomingAndPetCare
-  homeCleaningServices
-  laundryServices
-  gardening
-}
+  enum JobTag {
+    plumbing
+    electricalRepairs
+    carpentry
+    roofRepair
+    paintingServices
+    welding
+    glassInstallation
+    airconRepairAndCleaning
+    applianceRepair
+    pestControlServices
+    autoMechanic
+    carWash
+    motorcycleRepair
+    carAirconRepair
+    windowTinting
+    caregiver
+    personalDriver
+    massageTherapy
+    petGroomingAndPetCare
+    homeCleaningServices
+    laundryServices
+    gardening
+  }
 
-model JobRequest {
-  id               String     @id @default(auto()) @map("_id") @db.ObjectId
-  client           User       @relation(fields: [clientId], references: [id])
-  clientId         String     @db.ObjectId
-  jobSeeker        JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId      String?     @default("") @db.ObjectId
-  jobTitle         String
-  jobDescription   String
-  category         String
-  jobLocation      String
-  jobStatus        String     @default("vacant")
-  budget           String
-  offer            String? 
-  jobDuration      String     @default("")
-  jobImage         String[]
-  datePosted       DateTime   @default(now())
-  jobRating        Int
-  jobReview        String
-  acceptedAt       DateTime
-  completedAt      DateTime
-  verifiedAt       DateTime
+  model JobRequest {
+    id               String     @id @default(auto()) @map("_id") @db.ObjectId
+    client           User       @relation(fields: [clientId], references: [id])
+    clientId         String     @db.ObjectId
+    jobSeeker        JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+    jobSeekerId      String?     @default("") @db.ObjectId
+    jobTitle         String
+    jobDescription   String
+    category         String
+    jobLocation      String
+    jobStatus        String     @default("vacant")
+    budget           String
+    offer            String? 
+    jobDuration      String     @default("")
+    jobImage         String[]
+    datePosted       DateTime   @default(now())
+    jobRating        Int
+    jobReview        String
+    acceptedAt       DateTime
+    completedAt      DateTime
+    verifiedAt       DateTime
 
-  @@map("jobrequest")
-}
+    @@map("jobrequest")
+  }
 
-model Post {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  client       User?      @relation(fields: [clientId], references: [id])
-  clientId     String    @db.ObjectId @default("")
-  jobSeeker    JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId  String    @db.ObjectId @default("")
-  postContent  String
-  postImage    String?
-  likeCount    Int
-  commentCount Int
-  createdAt    DateTime
-  like         Like[]
-  comment      Comment[]
+  model Post {
+    id           String    @id @default(auto()) @map("_id") @db.ObjectId
+    client       User?      @relation(fields: [clientId], references: [id])
+    clientId     String    @db.ObjectId @default("")
+    jobSeeker    JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+    jobSeekerId  String    @db.ObjectId @default("")
+    postContent  String
+    postImage    String?
+    likeCount    Int
+    commentCount Int
+    createdAt    DateTime
+    like         Like[]
+    comment      Comment[]
 
-  @@map("post")
-}
+    @@map("post")
+  }
 
-model Like {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  post        Post      @relation(fields: [postId], references: [id])
-  postId      String    @db.ObjectId
-  client      User?      @relation(fields: [clientId], references: [id])
-  clientId    String    @db.ObjectId @default("")
-  jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId String    @db.ObjectId @default("")
-  likedAt     DateTime
+  model Like {
+    id          String    @id @default(auto()) @map("_id") @db.ObjectId
+    post        Post      @relation(fields: [postId], references: [id])
+    postId      String    @db.ObjectId
+    client      User?      @relation(fields: [clientId], references: [id])
+    clientId    String    @db.ObjectId @default("")
+    jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+    jobSeekerId String    @db.ObjectId @default("")
+    likedAt     DateTime
 
-  @@map("like")
-}
+    @@map("like")
+  }
 
-model Comment {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId      String    @db.ObjectId
-  client      User?      @relation(fields: [clientId], references: [id])
-  clientId    String?    @db.ObjectId
-  jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId String?    @db.ObjectId
-  comment     String
-  createdAt   DateTime
+  model Comment {
+    id          String    @id @default(auto()) @map("_id") @db.ObjectId
+    post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+    postId      String    @db.ObjectId
+    client      User?      @relation(fields: [clientId], references: [id])
+    clientId    String?    @db.ObjectId
+    jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+    jobSeekerId String?    @db.ObjectId
+    comment     String
+    createdAt   DateTime
 
-  parentCommentId String? @db.ObjectId
-  parentComment Comment? @relation("Replies", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  replies Comment[] @relation("Replies")
+    parentCommentId String? @db.ObjectId
+    parentComment Comment? @relation("Replies", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    replies Comment[] @relation("Replies")
 
-  @@map("comment")
-}
+    @@map("comment")
+  }
 
-model Chat {
-  id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  participants  Participant[]
-  createdAt     DateTime      @default(now())
-  lastMessageAt DateTime?     
-  chatTitle     String  
-  chatStatus    String        @default("pending")
-  jobId         String        @db.ObjectId
-  offer         String?       
-  offerStatus   String?      @default("none")
-  messages      Message[]
-  
+  model Chat {
+    id            String        @id @default(auto()) @map("_id") @db.ObjectId
+    participants  Participant[]
+    createdAt     DateTime      @default(now())
+    lastMessageAt DateTime?     
+    chatTitle     String  
+    chatStatus    String        @default("pending")
+    jobId         String        @db.ObjectId
+    offer         String?       
+    offerStatus   String?      @default("none")
+    messages      Message[]
+    
 
-  @@map("chat")
-}
+    @@map("chat")
+  }
 
-model Participant {
-  id          String      @id @default(auto()) @map("_id") @db.ObjectId
-  chat        Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  chatId      String      @db.ObjectId
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade) 
-  userId      String     @db.ObjectId
-  jobSeeker   JobSeeker  @relation(fields: [jobSeekerId], references: [userId], onDelete: Cascade)//ichanged
-  jobSeekerId String     @db.ObjectId
-  joinedAt    DateTime    @default(now())
-  messageStatus String?  //prisma generate mamaya
-  deletedByClient   Boolean     @default(false)
-  deletedByJobSeeker Boolean    @default(false)
-  messages    Message[]  
-  readStatuses ReadStatus[]
-  @@map("participants")
-}
+  model Participant {
+    id          String      @id @default(auto()) @map("_id") @db.ObjectId
+    chat        Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+    chatId      String      @db.ObjectId
+    user        User       @relation(fields: [userId], references: [id], onDelete: Cascade) 
+    userId      String     @db.ObjectId
+    jobSeeker   JobSeeker  @relation(fields: [jobSeekerId], references: [userId], onDelete: Cascade)//ichanged
+    jobSeekerId String     @db.ObjectId
+    joinedAt    DateTime    @default(now())
+    messageStatus String?  //prisma generate mamaya
+    deletedByClient   Boolean     @default(false)
+    deletedByJobSeeker Boolean    @default(false)
+    messages    Message[]  
+    readStatuses ReadStatus[]
+    @@map("participants")
+  }
 
-model Message {
-  id             String       @id @default(auto()) @map("_id") @db.ObjectId
-  chat           Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  chatId         String       @db.ObjectId
-  sender         Participant  @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  senderId       String       @db.ObjectId
-  messageContent String
-  sentAt         DateTime      @default(now())
-  messageType    String
-  deletedBySender      String  @default("no")
-  deletedByReceiver    String  @default("no")
-  readBy         ReadStatus[]
+  model Message {
+    id             String       @id @default(auto()) @map("_id") @db.ObjectId
+    chat           Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+    chatId         String       @db.ObjectId
+    sender         Participant  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+    senderId       String       @db.ObjectId
+    messageContent String
+    sentAt         DateTime      @default(now())
+    messageType    String
+    deletedBySender      String  @default("no")
+    deletedByReceiver    String  @default("no")
+    readBy         ReadStatus[]
 
-  @@map("messages")
-}
+    @@map("messages")
+  }
 
-model ReadStatus {
-  id            String      @id @default(auto()) @map("_id") @db.ObjectId
-  message       Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  messageId     String      @db.ObjectId
-  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  participantId String      @db.ObjectId
-  readAt        DateTime?  
-  @@unique([messageId, participantId])
-  @@map("read_status")
-}
+  model ReadStatus {
+    id            String      @id @default(auto()) @map("_id") @db.ObjectId
+    message       Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+    messageId     String      @db.ObjectId
+    participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+    participantId String      @db.ObjectId
+    readAt        DateTime?  
+    @@unique([messageId, participantId])
+    @@map("read_status")
+  }
 
-model Notification {
-  id                  String     @id @default(auto()) @map("_id") @db.ObjectId
-  client              User       @relation(fields: [clientId], references: [id])
-  clientId            String     @db.ObjectId
-  jobSeeker           JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId         String?    @db.ObjectId
-  notificationType    String     // Consider Enum for fixed types
-  notificationTitle   String
-  notificationMessage String
-  relatedIds          String[]   @db.ObjectId  // Renamed for clarity
-  isRead              Boolean    @default(false)
-  createdAt           DateTime   @default(now())
-  readAt              DateTime?
+  model Notification {
+    id                  String     @id @default(auto()) @map("_id") @db.ObjectId
+    client              User       @relation(fields: [clientId], references: [id])
+    clientId            String     @db.ObjectId
+    jobSeeker           JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+    jobSeekerId         String?    @db.ObjectId
+    notificationType    String     // Consider Enum for fixed types
+    notificationTitle   String
+    notificationMessage String
+    relatedIds          String[]   @db.ObjectId  // Renamed for clarity
+    isRead              Boolean    @default(false)
+    createdAt           DateTime   @default(now())
+    readAt              DateTime?
 
-  // Indexes for better query performance
-  @@index([clientId])
-  @@index([jobSeekerId])
-  @@index([createdAt])
-  @@map("notifications")
-}
+    // Indexes for better query performance
+    @@index([clientId])
+    @@index([jobSeekerId])
+    @@index([createdAt])
+    @@map("notifications")
+  }
 
 
