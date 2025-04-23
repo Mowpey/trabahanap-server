@@ -57,7 +57,7 @@ export const signUp = async (req, res) => {
             jobTags: req.body.jobTags.split(","),
             achievement: {
               create: {
-                achievementName: "Starter",
+                achievementName: "Created First Account",
                 jobRequired: "None",
                 requiredJobCount: 0,
                 achievementIcon: "./assets/achievements/starter.png",
