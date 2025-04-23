@@ -11,6 +11,7 @@ import {
   getJobSeekerTags,
   getMyJobs,
   markJobAsCompleted,
+  reviewnRating,
 } from "../controllers/app.controller.js";
 import multer from "multer";
 import {
@@ -96,7 +97,7 @@ router.get("/api/job-requests", authenticateToken, getJobRequests);
 router.get("/api/job-seeker/tags", authenticateToken, getJobSeekerTags);
 router.get('/api/job-seeker/my-jobs', authenticateToken, getMyJobs);
 router.post('/api/jobs/:jobId/complete', authenticateToken, markJobAsCompleted);
-
+router.patch("/api/jobrequest/verify/:id",authenticateToken,reviewnRating)
 router.use('/uploads', express.static(
   path.join(__dirname, '../assets/job_request_files'),
   {
