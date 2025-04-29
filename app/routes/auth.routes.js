@@ -1,4 +1,10 @@
-import { login, signUp, decodeToken } from "../controllers/auth.controller.js";
+import {
+  login,
+  signUp,
+  decodeToken,
+  storeOTP,
+  verifyOtpOnly,
+} from "../controllers/auth.controller.js";
 import express from "express";
 import multer from "multer";
 import cryptoRandomString from "crypto-random-string";
@@ -22,6 +28,8 @@ const signUpData = multer({ storage: storage });
 
 router.post("/login", login);
 router.get("/decodeToken", decodeToken);
+router.post("/store-otp", storeOTP);
+router.post("/verify-otp", verifyOtpOnly);
 router.post("/signup", signUpData.single("profileImage"), signUp);
 
 export default router;
