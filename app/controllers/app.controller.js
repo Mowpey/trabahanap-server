@@ -175,7 +175,7 @@ export const getMyJobs = async (req, res) => {
       where: {
         jobSeekerId: jobSeekerId,
         jobStatus: {
-          in: ["accepted", "pending"], // Only show accepted/pending jobs
+          in: ["accepted", "pending","completed"], // Only show accepted/pending jobs
         },
       },
       include: {
@@ -237,29 +237,89 @@ export const markJobAsCompleted = async (req, res) => {
   }
 };
 
-export const reviewnRating =  async (req, res) => {
-  console.log("Received PATCH for:", req.params.jobId, req.body);
-  const { id } = req.params;
-  const { rating, review } = req.body;
+export const reviewnRating = async (req, res) => {
+  const jobId = req.params.id; // Changed from id to jobId for clarity
+  const { rating, feedback, reviewerId, reviewedId,userType } = req.body;
+  console.log(req.body)
+  console.log("jobId:", jobId, "reviewerId:", reviewerId, "reviewedId:", reviewedId, "rating:", rating, "review", feedback);
 
-  if (!rating || !review) {
-    return res.status(400).json({ message: "Rating and review are required." });
+  // Validation
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ 
+      message: "Valid rating (1-5) is required." 
+    });
+  }
+  if (!reviewedId) {
+    return res.status(400).json({ 
+      message: "reviewedId (reviewee) is required." 
+    });
   }
 
   try {
-    const job = await prisma.jobRequest.update({
-      where: { id },
-      data: {
-        jobRating: rating,
-        jobReview: review,
-        verifiedAt: new Date(),
-        jobStatus: "verified",
-      },
+    // 1. Verify job exists and is complete
+    const job = await prisma.jobRequest.findUnique({
+      where: { id: jobId },
+      select: { 
+        jobStatus: true,
+        clientId: true,
+        jobSeekerId: true 
+      }
     });
 
-    res.status(200).json({ message: "Job verified successfully.", job });
+    if (!job) {
+      return res.status(404).json({ message: "Job not found." });
+    }
+
+
+    // 2. Check if reviewer is a participant
+    const isValidReviewer = 
+      reviewerId === job.clientId || 
+      reviewerId === job.jobSeekerId;
+
+    if (!isValidReviewer) {
+      return res.status(403).json({ 
+        message: "Only job participants can leave reviews." 
+      });
+    }
+
+    // 3. Create review
+    const review = await prisma.review.create({
+      data: {
+        jobRequestId: jobId,
+        reviewerId,
+        reviewedId,
+        rating,
+        feedback,
+      },
+      include: {
+        reviewer: {
+          select: {
+            firstName: true,
+            profileImage: true
+          }
+        }
+      }
+    });
+
+    // 4. Update job status (optional)
+    await prisma.jobRequest.update({
+      where: { id: jobId },
+      data: { 
+        verifiedAt: new Date(),
+        jobStatus: userType === "client" ? "completed" : userType === "job-seeker" ? "reviewed" : undefined
+      }
+    });
+
+    res.status(201).json({ 
+      message: "Review submitted successfully.",
+      review 
+    });
+
   } catch (error) {
-    console.error("Verification error:", error);
-    res.status(500).json({ message: "Failed to verify job." });
+    console.error("Review submission error:", error);
+    res.status(500).json({ 
+      message: "Failed to submit review.",
+      error: error.message 
+    });
   }
 };

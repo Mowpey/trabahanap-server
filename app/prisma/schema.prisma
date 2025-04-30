@@ -31,8 +31,10 @@
     comment      Comment[]
     notification Notification[]
     participants Participant[]
+    Review        Review[]
     @@map("users")
-  }
+      
+}
 
   model JobSeeker {
     id           String         @id @default(auto()) @map("_id") @db.ObjectId
@@ -50,9 +52,10 @@
     comment      Comment[]
     notification Notification[]
     participants Participant[]
-
+    Review Review[]
     @@map("jobseekers")
-  }
+
+}
 
   model Achievement {
     id               String    @id @default(auto()) @map("_id") @db.ObjectId
@@ -119,15 +122,35 @@
     offer            String? 
     jobDuration      String     @default("")
     jobImage         String[]
+    applicantCount   Int        @default(0)
     datePosted       DateTime   @default(now())
-    jobRating        Int
-    jobReview        String
+    reviews          Review[]   // New relation
     acceptedAt       DateTime
     completedAt      DateTime
     verifiedAt       DateTime
 
     @@map("jobrequest")
   }
+  model Review {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  jobRequest  JobRequest @relation(fields: [jobRequestId], references: [id])
+  jobRequestId String   @db.ObjectId
+  reviewer    User      @relation(fields: [reviewerId], references: [id])
+  reviewerId  String    @db.ObjectId
+
+  reviewed    JobSeeker @relation(fields: [reviewedId], references: [id])
+  reviewedId  String    @db.ObjectId
+
+  rating      Int       @default(1)
+  feedback    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([jobRequestId])
+  @@index([reviewerId])
+  @@index([reviewedId])
+  @@map("reviews")
+}
 
   model Post {
     id           String    @id @default(auto()) @map("_id") @db.ObjectId
