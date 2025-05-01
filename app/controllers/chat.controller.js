@@ -579,6 +579,12 @@ export const getReviews = async (req, res) => {
         rating: true,
         feedback: true,
         createdAt: true,
+        reviewer: {  // Add this to get reviewer information
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        },
         jobRequest: {
           select: {
             jobTitle: true,
@@ -597,12 +603,57 @@ export const getReviews = async (req, res) => {
         comment: review.feedback,
         date: (review.jobRequest?.verifiedAt || review.createdAt).toISOString(),
         jobTitle: review.jobRequest?.jobTitle || '',
-        anonymousName: 'Anonymous Client'
+        anonymousName: `${review.reviewer.firstName} ${review.reviewer.lastName}`  // Use actual name
       }));
 
     return res.status(200).json(feedbacks);
   } catch (error) {
     console.error("Error fetching reviews:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getClientProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Fetch the user (client) profile
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        suffixName: true,
+        profileImage: true,
+        emailAddress: true,
+        barangay: true,
+        street: true,
+        houseNumber: true,
+        gender: true,
+        birthday: true,
+        // Add other fields as needed
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const response = {
+      name: `${user.firstName} ${user.middleName || ''} ${user.lastName}`,
+      profileImage: user.profileImage || '',
+      address: `${user.houseNumber || ''} ${user.street || ''}, ${user.barangay || ''}`,
+      email: user.emailAddress,
+      phoneNumber: '', // Not currently stored in the schema
+      gender: user.gender,
+      birthday: user.birthday ? user.birthday.toISOString() : null,
+      // No skills, services, or achievements
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching client profile:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
