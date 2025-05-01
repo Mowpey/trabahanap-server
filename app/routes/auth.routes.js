@@ -30,6 +30,14 @@ router.post("/login", login);
 router.get("/decodeToken", decodeToken);
 router.post("/store-otp", storeOTP);
 router.post("/verify-otp", verifyOtpOnly);
-router.post("/signup", signUpData.single("profileImage"), signUp);
+router.post(
+  "/signup",
+  signUpData.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "idValidationFrontImage", maxCount: 1 },
+    { name: "idValidationBackImage", maxCount: 1 },
+  ]),
+  signUp
+);
 
 export default router;

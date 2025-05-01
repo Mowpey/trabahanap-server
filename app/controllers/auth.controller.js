@@ -67,7 +67,14 @@ export const signUp = async (req, res) => {
         age: parseInt(req.body.age),
         emailAddress: req.body.emailAddress,
         password: bcrypt.hashSync(req.body.password, 10),
-        profileImage: req.file ? req.file.path : "",
+        profileImage: req.files ? req.files.profileImage[0].path : "",
+        idValidationFrontImage: req.files
+          ? req.files.idValidationFrontImage[0].path
+          : "",
+        idValidationBackImage: req.files
+          ? req.files.idValidationBackImage[0].path
+          : "",
+        idType: req.body.idType,
         bio: req.body.bio,
         barangay: req.body.barangay,
         street: req.body.street,
@@ -117,7 +124,14 @@ export const signUp = async (req, res) => {
       birthday: new Date(req.body.birthday),
       emailAddress: req.body.emailAddress,
       password: bcrypt.hashSync(req.body.password, 10),
-      profileImage: req.file ? req.file.path : "",
+      profileImage: req.files ? req.files.profileImage[0].path : "",
+      idValidationFrontImage: req.files
+        ? req.files.idValidationFrontImage[0].path
+        : "",
+      idValidationBackImage: req.files
+        ? req.files.idValidationBackImage[0].path
+        : "",
+      idType: req.body.idType,
       bio: req.body.bio,
       barangay: req.body.barangay,
       street: req.body.street,
