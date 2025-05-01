@@ -50,6 +50,14 @@ export const createChat = async (req, res) => {
         },
         include: { participants: true },
       });
+      await prisma.jobRequest.update({
+        where: { id: jobId },
+        data: {
+          applicantCount: {
+            increment: 1
+          }
+        }
+      })
         // After creating the chat
         io.to(`user_${clientId}`).to(`user_${jobSeekerId}`).emit("new_chat", {
           chatId: chat.id,
@@ -471,8 +479,6 @@ export const getUserProfile = async (req, res) => {
             ]
           },
           select: { 
-            jobRating: true,
-            jobReview: true,
             completedAt: true,
             verifiedAt: true
           }
@@ -484,10 +490,31 @@ export const getUserProfile = async (req, res) => {
       return res.status(404).json({ message: "Job seeker not found" });
     }
 
+    // Fetch all reviews for this jobseeker (by jobRequest)
+    const reviews = await prisma.review.findMany({
+      where: {
+        jobRequest: {
+          jobSeekerId: userId,
+          jobStatus: 'verified'
+        }
+      },
+      select: {
+        id: true,
+        rating: true,
+        feedback: true,
+        createdAt: true,
+        jobRequest: {
+          select: {
+            verifiedAt: true
+          }
+        }
+      }
+    });
+
     // Calculate average rating and completed jobs
     const completedJobs = jobSeeker.jobRequest.length;
-    const totalRating = jobSeeker.jobRequest.reduce((sum, job) => sum + (job.jobRating || 0), 0);
-    const averageRating = completedJobs > 0 ? totalRating / completedJobs : 0;
+    const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+    const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
 
     // Transform achievements to match the interface
     const achievements = jobSeeker.achievement.map(achievement => ({
@@ -499,14 +526,14 @@ export const getUserProfile = async (req, res) => {
     }));
 
     // Transform feedbacks
-    const feedbacks = jobSeeker.jobRequest
-      .filter(job => job.jobReview)
-      .map(job => ({
-        id: job.id,
-        rating: job.jobRating || 0,
-        comment: job.jobReview,
-        date: job.verifiedAt.toISOString(), // Using verifiedAt as the review date
-        anonymousName: 'Anonymous Client' // Since we don't store client names in reviews
+    const feedbacks = reviews
+      .filter(review => review.feedback)
+      .map(review => ({
+        id: review.id,
+        rating: review.rating || 0,
+        comment: review.feedback,
+        date: (review.jobRequest?.verifiedAt || review.createdAt).toISOString(),
+        anonymousName: 'Anonymous Client'
       }));
 
     // Calculate years of experience (assuming it's based on first job completion)
@@ -542,38 +569,91 @@ export const getReviews = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    // Get all verified jobs for this job seeker with reviews
-    const jobs = await prisma.jobRequest.findMany({
+    // Get all reviews for this job seeker (by reviewedId only)
+    const reviews = await prisma.review.findMany({
       where: {
-        AND: [
-          { jobStatus: 'verified' },
-          { jobSeekerId: userId }
-        ]
+        reviewedId: userId
       },
       select: {
         id: true,
-        jobRating: true,
-        jobReview: true,
-        verifiedAt: true,
-        jobTitle: true
+        rating: true,
+        feedback: true,
+        createdAt: true,
+        reviewer: {  // Add this to get reviewer information
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        },
+        jobRequest: {
+          select: {
+            jobTitle: true,
+            verifiedAt: true
+          }
+        }
       }
     });
 
-    // Transform the jobs into feedback format
-    const feedbacks = jobs
-      .filter(job => job.jobReview) // Only include jobs with reviews
-      .map(job => ({
-        id: job.id,
-        rating: job.jobRating || 0,
-        comment: job.jobReview,
-        date: job.verifiedAt.toISOString(),
-        jobTitle: job.jobTitle,
-        anonymousName: 'Anonymous Client'
+    // Transform the reviews into feedback format
+    const feedbacks = reviews
+      .filter(review => review.feedback)
+      .map(review => ({
+        id: review.id,
+        rating: review.rating || 0,
+        comment: review.feedback,
+        date: (review.jobRequest?.verifiedAt || review.createdAt).toISOString(),
+        jobTitle: review.jobRequest?.jobTitle || '',
+        anonymousName: `${review.reviewer.firstName} ${review.reviewer.lastName}`  // Use actual name
       }));
 
     return res.status(200).json(feedbacks);
   } catch (error) {
     console.error("Error fetching reviews:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getClientProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Fetch the user (client) profile
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        suffixName: true,
+        profileImage: true,
+        emailAddress: true,
+        barangay: true,
+        street: true,
+        houseNumber: true,
+        gender: true,
+        birthday: true,
+        // Add other fields as needed
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const response = {
+      name: `${user.firstName} ${user.middleName || ''} ${user.lastName}`,
+      profileImage: user.profileImage || '',
+      address: `${user.houseNumber || ''} ${user.street || ''}, ${user.barangay || ''}`,
+      email: user.emailAddress,
+      phoneNumber: '', // Not currently stored in the schema
+      gender: user.gender,
+      birthday: user.birthday ? user.birthday.toISOString() : null,
+      // No skills, services, or achievements
+    };
+
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching client profile:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
