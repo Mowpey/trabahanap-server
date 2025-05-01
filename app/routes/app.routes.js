@@ -1,6 +1,6 @@
 import express from "express";
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from "path";
+import { fileURLToPath } from "url";
 import {
   getClientListings,
   getSingleJobListing,
@@ -14,6 +14,7 @@ import {
   reviewnRating,
   searchJobs,
   getTopCategories,
+  searchJobSeekers,
 } from "../controllers/app.controller.js";
 import multer from "multer";
 import {
@@ -24,7 +25,7 @@ import {
 } from "../helpers/app.helper.js";
 import fs from "node:fs";
 import authenticateToken from "../middleware/auth.middleware.js";
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -97,36 +98,39 @@ router.patch(
 );
 router.get("/api/job-requests", authenticateToken, getJobRequests);
 router.get("/api/job-seeker/tags", authenticateToken, getJobSeekerTags);
-router.get('/api/job-seeker/my-jobs', authenticateToken, getMyJobs);
-router.post('/api/jobs/:jobId/complete', authenticateToken, markJobAsCompleted);
-router.post("/api/jobrequest/verify/:id",authenticateToken,reviewnRating)
-router.get('/api/jobs/search',authenticateToken, searchJobs);
-router.get('/api/jobs/top-categories',authenticateToken, getTopCategories);
-router.use('/uploads', express.static(
-  path.join(__dirname, '../assets/job_request_files'),
-  {
-    maxAge: '1d',
+router.get("/api/job-seeker/my-jobs", authenticateToken, getMyJobs);
+router.post("/api/jobs/:jobId/complete", authenticateToken, markJobAsCompleted);
+router.post("/api/jobrequest/verify/:id", authenticateToken, reviewnRating);
+router.get("/api/jobs/search", authenticateToken, searchJobs);
+router.get("/api/jobs/top-categories", authenticateToken, getTopCategories);
+router.use(
+  "/uploads",
+  express.static(path.join(__dirname, "../assets/job_request_files"), {
+    maxAge: "1d",
     setHeaders: (res) => {
-      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-    }
-  }
-));
-router.use('/uploads/messages', express.static(
-  path.join(__dirname, '../assets/messages_files'), 
-  {
-    maxAge: '1d',
+      res.set("Cross-Origin-Resource-Policy", "cross-origin");
+    },
+  })
+);
+router.use(
+  "/uploads/messages",
+  express.static(path.join(__dirname, "../assets/messages_files"), {
+    maxAge: "1d",
     setHeaders: (res) => {
-      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-    }
-  }
-));
-router.use('/uploads/profiles', express.static(
-  path.join(__dirname, '../assets/profiles'), 
-  {
-    maxAge: '1d',
+      res.set("Cross-Origin-Resource-Policy", "cross-origin");
+    },
+  })
+);
+router.use(
+  "/uploads/profiles",
+  express.static(path.join(__dirname, "../assets/profiles"), {
+    maxAge: "1d",
     setHeaders: (res) => {
-      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
-    }
-  }
-));
+      res.set("Cross-Origin-Resource-Policy", "cross-origin");
+    },
+  })
+);
+
+router.get("/api/search/jobseekers", authenticateToken, searchJobSeekers);
+
 export default router;

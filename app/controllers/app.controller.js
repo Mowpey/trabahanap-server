@@ -171,7 +171,7 @@ export const getMyJobs = async (req, res) => {
       where: {
         jobSeekerId: jobSeekerId,
         jobStatus: {
-          in: ["accepted", "pending","completed"], // Only show accepted/pending jobs
+          in: ["accepted", "pending", "completed"], // Only show accepted/pending jobs
         },
       },
       include: {
@@ -235,19 +235,30 @@ export const markJobAsCompleted = async (req, res) => {
 
 export const reviewnRating = async (req, res) => {
   const jobId = req.params.id; // Changed from id to jobId for clarity
-  const { rating, feedback, reviewerId, reviewedId,userType } = req.body;
-  console.log(req.body)
-  console.log("jobId:", jobId, "reviewerId:", reviewerId, "reviewedId:", reviewedId, "rating:", rating, "review", feedback);
+  const { rating, feedback, reviewerId, reviewedId, userType } = req.body;
+  console.log(req.body);
+  console.log(
+    "jobId:",
+    jobId,
+    "reviewerId:",
+    reviewerId,
+    "reviewedId:",
+    reviewedId,
+    "rating:",
+    rating,
+    "review",
+    feedback
+  );
 
   // Validation
   if (!rating || rating < 1 || rating > 5) {
-    return res.status(400).json({ 
-      message: "Valid rating (1-5) is required." 
+    return res.status(400).json({
+      message: "Valid rating (1-5) is required.",
     });
   }
   if (!reviewedId) {
-    return res.status(400).json({ 
-      message: "reviewedId (reviewee) is required." 
+    return res.status(400).json({
+      message: "reviewedId (reviewee) is required.",
     });
   }
 
@@ -255,26 +266,24 @@ export const reviewnRating = async (req, res) => {
     // 1. Verify job exists and is complete
     const job = await prisma.jobRequest.findUnique({
       where: { id: jobId },
-      select: { 
+      select: {
         jobStatus: true,
         clientId: true,
-        jobSeekerId: true 
-      }
+        jobSeekerId: true,
+      },
     });
 
     if (!job) {
       return res.status(404).json({ message: "Job not found." });
     }
 
-
     // 2. Check if reviewer is a participant
-    const isValidReviewer = 
-      reviewerId === job.clientId || 
-      reviewerId === job.jobSeekerId;
+    const isValidReviewer =
+      reviewerId === job.clientId || reviewerId === job.jobSeekerId;
 
     if (!isValidReviewer) {
-      return res.status(403).json({ 
-        message: "Only job participants can leave reviews." 
+      return res.status(403).json({
+        message: "Only job participants can leave reviews.",
       });
     }
 
@@ -291,31 +300,35 @@ export const reviewnRating = async (req, res) => {
         reviewer: {
           select: {
             firstName: true,
-            profileImage: true
-          }
-        }
-      }
+            profileImage: true,
+          },
+        },
+      },
     });
 
     // 4. Update job status (optional)
     await prisma.jobRequest.update({
       where: { id: jobId },
-      data: { 
+      data: {
         verifiedAt: new Date(),
-        jobStatus: userType === "client" ? "completed" : userType === "job-seeker" ? "reviewed" : undefined
-      }
+        jobStatus:
+          userType === "client"
+            ? "completed"
+            : userType === "job-seeker"
+            ? "reviewed"
+            : undefined,
+      },
     });
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: "Review submitted successfully.",
-      review 
+      review,
     });
-
   } catch (error) {
     console.error("Review submission error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Failed to submit review.",
-      error: error.message 
+      error: error.message,
     });
   }
 };
@@ -323,7 +336,7 @@ export const reviewnRating = async (req, res) => {
 export const searchJobs = async (req, res) => {
   try {
     const { searchQuery, filter } = req.query;
-    
+
     // Build the where clause for Prisma
     let whereClause = {
       jobStatus: "open", // Only show open jobs
@@ -332,22 +345,22 @@ export const searchJobs = async (req, res) => {
     // Add text search if searchQuery exists
     if (searchQuery) {
       whereClause.OR = [
-        { jobTitle: { contains: searchQuery, mode: 'insensitive' } },
-        { jobDescription: { contains: searchQuery, mode: 'insensitive' } },
-        { category: { contains: searchQuery, mode: 'insensitive' } },
+        { jobTitle: { contains: searchQuery, mode: "insensitive" } },
+        { jobDescription: { contains: searchQuery, mode: "insensitive" } },
+        { category: { contains: searchQuery, mode: "insensitive" } },
         {
           client: {
             OR: [
-              { firstName: { contains: searchQuery, mode: 'insensitive' } },
-              { lastName: { contains: searchQuery, mode: 'insensitive' } }
-            ]
-          }
-        }
+              { firstName: { contains: searchQuery, mode: "insensitive" } },
+              { lastName: { contains: searchQuery, mode: "insensitive" } },
+            ],
+          },
+        },
       ];
     }
 
     // Add category filter if it exists and is not 'all'
-    if (filter && filter !== 'all') {
+    if (filter && filter !== "all") {
       whereClause.category = filter;
     }
 
@@ -361,16 +374,16 @@ export const searchJobs = async (req, res) => {
             firstName: true,
             lastName: true,
             profileImage: true,
-          }
-        }
+          },
+        },
       },
       orderBy: {
-        datePosted: 'desc'
-      }
+        datePosted: "desc",
+      },
     });
 
     // Transform the response to include formatted client information
-    const formattedJobs = jobs.map(job => ({
+    const formattedJobs = jobs.map((job) => ({
       id: job.id,
       jobTitle: job.jobTitle,
       jobDescription: job.jobDescription,
@@ -383,28 +396,27 @@ export const searchJobs = async (req, res) => {
       client: {
         id: job.client.id,
         name: `${job.client.firstName} ${job.client.lastName}`,
-        profileImage: job.client.profileImage
-      }
+        profileImage: job.client.profileImage,
+      },
     }));
 
     // Get available categories (for dynamic filter options)
     const categories = await prisma.jobRequest.findMany({
       where: { jobStatus: "open" },
       select: { category: true },
-      distinct: ['category']
+      distinct: ["category"],
     });
 
     res.json({
       jobs: formattedJobs,
-      categories: categories.map(c => c.category),
-      total: formattedJobs.length
+      categories: categories.map((c) => c.category),
+      total: formattedJobs.length,
     });
-
   } catch (error) {
     console.error("Error searching jobs:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Failed to search jobs",
-      details: error.message 
+      details: error.message,
     });
   }
 };
@@ -413,46 +425,101 @@ export const getTopCategories = async (req, res) => {
   try {
     // Get categories with their count, ordered by frequency
     const categoryStats = await prisma.jobRequest.groupBy({
-      by: ['category'],
+      by: ["category"],
       _count: {
-        category: true
+        category: true,
       },
       where: {
         // Optionally filter only open jobs
-        jobStatus: "open"
+        jobStatus: "open",
       },
       orderBy: {
         _count: {
-          category: 'desc'
-        }
+          category: "desc",
+        },
       },
-      take: 10 // Limit to top 10
+      take: 10, // Limit to top 10
     });
 
     // Transform the response to a simpler format
-    const formattedCategories = categoryStats.map(stat => ({
+    const formattedCategories = categoryStats.map((stat) => ({
       category: stat.category,
-      count: stat._count.category
+      count: stat._count.category,
     }));
 
     res.json({
       categories: formattedCategories,
-      total: formattedCategories.length
+      total: formattedCategories.length,
     });
-
   } catch (error) {
     console.error("Error fetching top categories:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Failed to fetch top categories",
-      details: error.message 
+      details: error.message,
     });
   }
 };
 
+export const searchJobSeekers = async (req, res) => {
+  const { query, category, page = 1, limit = 10 } = req.query;
 
+  try {
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
 
+    const whereClause = {
+      userType: "job-seeker",
+    };
 
+    if (query) {
+      whereClause.OR = [
+        { firstName: { contains: query, mode: "insensitive" } },
+        { middleName: { contains: query, mode: "insensitive" } },
+        { lastName: { contains: query, mode: "insensitive" } },
+      ];
+    }
 
+    let allMatchingJobSeekers = await prisma.user.findMany({
+      where: whereClause,
+      include: {
+        jobSeeker: true,
+      },
+      orderBy: {
+        firstName: "asc",
+      },
+    });
+
+    let filteredJobSeekers = allMatchingJobSeekers;
+
+    if (category) {
+      const lowerCaseCategory = category.toLowerCase();
+      filteredJobSeekers = allMatchingJobSeekers.filter((user) =>
+        user.jobSeeker?.jobTags?.some(
+          (tag) => tag.toLowerCase() === lowerCaseCategory
+        )
+      );
+    }
+
+    const totalJobSeekers = filteredJobSeekers.length;
+    const paginatedJobSeekers = filteredJobSeekers.slice(
+      (pageNum - 1) * limitNum,
+      pageNum * limitNum
+    );
+
+    res.json({
+      data: paginatedJobSeekers,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: totalJobSeekers,
+        totalPages: Math.ceil(totalJobSeekers / limitNum),
+      },
+    });
+  } catch (error) {
+    console.error("Error searching job seekers:", error);
+    res.status(500).json({ error: "Failed to search job seekers" });
+  }
+};
 
 // // Optional: Add an endpoint to get recent searches if you want to persist them
 // export const getRecentSearches = async (req, res) => {
@@ -496,4 +563,3 @@ export const getTopCategories = async (req, res) => {
 //     res.status(500).json({ error: "Failed to save search" });
 //   }
 // };
-
