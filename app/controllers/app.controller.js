@@ -471,14 +471,7 @@ export const searchJobSeekers = async (req, res) => {
       userType: "job-seeker",
     };
 
-    if (query) {
-      whereClause.OR = [
-        { firstName: { contains: query, mode: "insensitive" } },
-        { middleName: { contains: query, mode: "insensitive" } },
-        { lastName: { contains: query, mode: "insensitive" } },
-      ];
-    }
-
+    // Fetch ALL job seekers first
     let allMatchingJobSeekers = await prisma.user.findMany({
       where: whereClause,
       include: {
@@ -491,15 +484,38 @@ export const searchJobSeekers = async (req, res) => {
 
     let filteredJobSeekers = allMatchingJobSeekers;
 
-    if (category) {
-      const lowerCaseCategory = category.toLowerCase();
-      filteredJobSeekers = allMatchingJobSeekers.filter((user) =>
-        user.jobSeeker?.jobTags?.some(
-          (tag) => tag.toLowerCase() === lowerCaseCategory
-        )
-      );
+    // Apply combined filtering in application code
+    if (query || category) {
+      const lowerCaseQuery = query?.toLowerCase();
+      const lowerCaseCategory = category?.toLowerCase();
+
+      filteredJobSeekers = allMatchingJobSeekers.filter((user) => {
+        let queryMatch = !query; // Pass if no query is provided
+        if (lowerCaseQuery) {
+          const nameMatches =
+            user.firstName?.toLowerCase().includes(lowerCaseQuery) ||
+            user.middleName?.toLowerCase().includes(lowerCaseQuery) ||
+            user.lastName?.toLowerCase().includes(lowerCaseQuery);
+
+          const queryTagMatches = user.jobSeeker?.jobTags?.some((tag) =>
+            tag.toLowerCase().includes(lowerCaseQuery)
+          ); // Use includes() for partial match
+
+          queryMatch = nameMatches || queryTagMatches; // Must match name OR query-as-tag
+        }
+
+        let categoryMatch = !category; // Pass if no category filter is provided
+        if (lowerCaseCategory) {
+          categoryMatch = user.jobSeeker?.jobTags?.some((tag) =>
+            tag.toLowerCase().includes(lowerCaseCategory)
+          ); // Use includes() for partial match
+        }
+
+        return queryMatch && categoryMatch; // Must satisfy both applicable conditions
+      });
     }
 
+    // Manual Pagination on the filtered results
     const totalJobSeekers = filteredJobSeekers.length;
     const paginatedJobSeekers = filteredJobSeekers.slice(
       (pageNum - 1) * limitNum,
