@@ -4,11 +4,14 @@ import fs from "fs/promises";
 const prisma = new PrismaClient();
 
 export const jobRequest = async (req, res) => {
-  if (req.body.jobSeeker) {
-    const jobPost = await prisma.jobRequest.create({
+  let jobPost;
+  let assignedJobSeekerId = req.body.jobSeeker || null;
+
+  if (assignedJobSeekerId) {
+    jobPost = await prisma.jobRequest.create({
       data: {
         client: { connect: { id: req.body.client } },
-        jobSeeker: { connect: { id: req.body.jobSeeker } },
+        jobSeeker: { connect: { id: assignedJobSeekerId } },
         jobTitle: req.body.jobTitle,
         jobDescription: req.body.jobDescription,
         category: req.body.category,
@@ -17,35 +20,78 @@ export const jobRequest = async (req, res) => {
         budget: req.body.budget,
         jobDuration: req.body.jobDuration,
         jobImage: req.files.map((file) => file.path),
-        acceptedAt: new Date(Date.now()), //temporarily when there is still no connection with job seekers
-        completedAt: new Date(Date.now()), //temporarily when there is still no connection with job seekers
-        verifiedAt: new Date(Date.now()), //temporarily when there is still no connection with job seekers
+        acceptedAt: new Date(Date.now()),
+        completedAt: new Date(Date.now()),
+        verifiedAt: new Date(Date.now()),
       },
     });
     console.log("Successfully posted the job request", jobPost);
-    res.status(201).json(jobPost);
-
-    return;
+  } else {
+    jobPost = await prisma.jobRequest.create({
+      data: {
+        client: { connect: { id: req.body.client } },
+        jobTitle: req.body.jobTitle,
+        jobDescription: req.body.jobDescription,
+        category: req.body.category,
+        jobLocation: req.body.jobLocation,
+        jobStatus: "open",
+        budget: req.body.budget,
+        jobDuration: req.body.jobDuration,
+        jobImage: req.files.map((file) => file.path),
+        acceptedAt: new Date(Date.now()),
+        completedAt: new Date(Date.now()),
+        verifiedAt: new Date(Date.now()),
+      },
+    });
+    console.log("Successfully posted the job request", jobPost);
   }
 
-  const jobPost = await prisma.jobRequest.create({
-    data: {
-      client: { connect: { id: req.body.client } },
-      jobTitle: req.body.jobTitle,
-      jobDescription: req.body.jobDescription,
-      category: req.body.category,
-      jobLocation: req.body.jobLocation,
-      jobStatus: "open",
-      budget: req.body.budget,
-      jobDuration: req.body.jobDuration,
-      jobImage: req.files.map((file) => file.path),
-      acceptedAt: new Date(Date.now()), //temporarily when there is still no connection with job seekers
-      completedAt: new Date(Date.now()), //temporarily when there is still no connection with job seekers
-      verifiedAt: new Date(Date.now()), //temporarily when there is still no connection with job seekers
+  // --- Notification logic ---
+  const jobCategory = req.body.category;
+
+  // Find all jobseekers with matching jobTags
+  let jobSeekerWhere = {
+    jobTags: {
+      has: jobCategory,
     },
+  };
+  // If a jobSeeker is assigned, exclude them from notifications
+  if (assignedJobSeekerId) {
+    jobSeekerWhere.id = { not: assignedJobSeekerId };
+  }
+
+  const matchingJobSeekers = await prisma.jobSeeker.findMany({
+    where: jobSeekerWhere,
+    select: { id: true, userId: true },
   });
 
-  console.log("Successfully posted the job request", jobPost);
+  // Prepare notifications for each matching jobseeker
+  const notifications = matchingJobSeekers.map((jobSeeker) => ({
+    clientId: req.body.client,
+    jobSeekerId: jobSeeker.id,
+    notificationType: "job-match",
+    notificationTitle: "New Job Available!",
+    notificationMessage: `A new job matching your skills (${jobCategory}) has been posted.`,
+    relatedIds: [jobPost.id],
+    isRead: false,
+    createdAt: new Date(),
+  }));
+
+  if (notifications.length > 0) {
+    const notifResult = await prisma.notification.createMany({
+      data: notifications,
+    });
+    console.log(
+      `Notifications created: ${notifResult.count} for jobPost ${jobPost.id}`,
+      notifications
+    );
+  } else {
+    console.log(
+      `No notifications created for jobPost ${jobPost.id}. Matching job seekers:`,
+      matchingJobSeekers
+    );
+  }
+
   res.status(201).json(jobPost);
 };
 
@@ -306,6 +352,21 @@ export const reviewnRating = async (req, res) => {
       },
     });
 
+    // --- Create notification for review ---
+    await prisma.notification.create({
+      data: {
+        clientId: userType === "client" ? reviewerId : job.clientId,
+        jobSeekerId: userType === "job-seeker" ? reviewerId : reviewedId,
+        notificationType: userType === "client" ? "review-jobseeker" : "review-client",
+        notificationTitle: "You received a new review!",
+        notificationMessage: `You have received a new review from ${review.reviewer.firstName}.`,
+        relatedIds: [jobId],
+        isRead: false,
+        createdAt: new Date(),
+      },
+    });
+    // --- End notification logic ---
+
     // 4. Update job status (optional)
     await prisma.jobRequest.update({
       where: { id: jobId },
@@ -518,6 +579,63 @@ export const searchJobSeekers = async (req, res) => {
   } catch (error) {
     console.error("Error searching job seekers:", error);
     res.status(500).json({ error: "Failed to search job seekers" });
+  }
+};
+
+export const getNotifications = async (req, res) => {
+  try {
+    const userId = req.user.id; // Assumes authentication middleware sets req.user
+    const userType = req.user.userType; // e.g., "client" or "job-seeker"
+
+    // Build the where clause based on user type
+    let whereClause = {};
+    if (userType === "client") {
+      whereClause.clientId = userId;
+    } else if (userType === "job-seeker") {
+      // Find the jobSeekerId for this user
+      const jobSeeker = await prisma.jobSeeker.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+      if (jobSeeker) {
+        whereClause.jobSeekerId = jobSeeker.userId;
+      } else {
+        return res.status(404).json({ error: "Job seeker profile not found." });
+      }
+    } else {
+      return res.status(400).json({ error: "Invalid user type." });
+    }
+
+    // Fetch notifications
+    const notifications = await prisma.notification.findMany({
+      where: whereClause,
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({ notifications });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ error: "Failed to fetch notifications" });
+  }
+};
+
+export const getJobRequestById = async (req, res) => {
+  try {
+    const { id } = req.params; // Get the job request ID from the URL parameter
+
+    const jobRequest = await prisma.jobRequest.findUnique({
+      where: { id },
+      include: { client: true },
+    });
+
+    if (!jobRequest) {
+      return res.status(404).json({ error: "Job request not found" });
+    }
+
+    res.json(jobRequest);
+  } catch (error) {
+    console.error("Error fetching job request by id:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
