@@ -352,6 +352,14 @@ export const reviewnRating = async (req, res) => {
       },
     });
 
+    // --- Increment jobsDone for the reviewee ---
+    await prisma.user.update({
+      where: { id: reviewedId },
+      data: {
+        jobsDone: { increment: 1 },
+      },
+    });
+
     // --- Create notification for review ---
     await prisma.notification.create({
       data: {

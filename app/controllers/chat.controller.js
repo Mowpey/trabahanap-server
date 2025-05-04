@@ -541,6 +541,8 @@ export const getUserProfile = async (req, res) => {
             houseNumber: true,
             gender: true,
             birthday: true,
+            jobsDone: true,
+            joinedAt: true,
           },
         },
         achievement: {
@@ -634,7 +636,9 @@ export const getUserProfile = async (req, res) => {
       phoneNumber: '', // Not currently stored in the schema
       gender: jobSeeker.user.gender,
       birthday: jobSeeker.user.birthday.toISOString(),
-      feedbacks
+      feedbacks,
+      jobsDone: jobSeeker.user.jobsDone || 0,
+      joinedAt: jobSeeker.user.joinedAt ? jobSeeker.user.joinedAt.toISOString() : null,
     };
 
     return res.status(200).json(response);
@@ -711,7 +715,8 @@ export const getClientProfile = async (req, res) => {
         houseNumber: true,
         gender: true,
         birthday: true,
-        // Add other fields as needed
+        jobsDone: true,
+        joinedAt: true,
       },
     });
 
@@ -727,7 +732,8 @@ export const getClientProfile = async (req, res) => {
       phoneNumber: '', // Not currently stored in the schema
       gender: user.gender,
       birthday: user.birthday ? user.birthday.toISOString() : null,
-      // No skills, services, or achievements
+      jobsDone: user.jobsDone || 0,
+      joinedAt: user.joinedAt ? user.joinedAt.toISOString() : null,
     };
 
     return res.status(200).json(response);
