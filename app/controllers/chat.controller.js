@@ -73,6 +73,20 @@ export const createChat = async (req, res) => {
           lastMessage: "Chat created",
           lastMessageTime: new Date()
         });
+
+        // Notify the client
+        await prisma.notification.create({
+          data: {
+            clientId: clientId,
+            jobSeekerId: jobSeekerId,
+            notificationType: "chat-request",
+            notificationTitle: "New Chat Request",
+            notificationMessage: `A job seeker has requested to chat about your job posting "${job.jobTitle}".`,
+            relatedIds: [jobId],
+            isRead: false,
+            createdAt: new Date(),
+          },
+        });
     }
 
     res.json({ chatId: chat.id,
@@ -327,6 +341,20 @@ export const chatApprove = async (req, res) => {
       return res.status(403).json({ error: "Only client can approve chats" });
     }
 
+    // Fetch chat and job title
+    const chat = await prisma.chat.findUnique({
+      where: { id: chatId }
+    });
+
+    let jobTitle = '';
+    if (chat && chat.jobId) {
+      const jobRequest = await prisma.jobRequest.findUnique({
+        where: { id: chat.jobId },
+        select: { jobTitle: true }
+      });
+      jobTitle = jobRequest?.jobTitle || '';
+    }
+
     const updatedChat = await prisma.chat.update({
       where: { id: chatId },
       data: { chatStatus: "approved" },
@@ -340,6 +368,23 @@ export const chatApprove = async (req, res) => {
         }
       }
     });
+
+    // Find the jobSeeker participant
+    const jobSeekerParticipant = updatedChat.participants.find(p => p.jobSeeker && p.jobSeeker.user);
+    if (jobSeekerParticipant) {
+      await prisma.notification.create({
+        data: {
+          clientId: userId,
+          jobSeekerId: jobSeekerParticipant.jobSeekerId,
+          notificationType: "chat-approved",
+          notificationTitle: "Chat Approved",
+          notificationMessage: `Your chat request for the job "${jobTitle}" has been approved by the employer.`,
+          relatedIds: [chatId],
+          isRead: false,
+          createdAt: new Date(),
+        },
+      });
+    }
 
     // Notify all participants via socket.io
     const io = req.app.get('socketio');
@@ -373,12 +418,46 @@ export const chatReject = async (req, res) => {
       return res.status(403).json({ error: "Only client can reject chats" });
     }
 
+    // Fetch chat and job title
+    const chat = await prisma.chat.findUnique({
+      where: { id: chatId }
+    });
+
+    let jobTitle = '';
+    if (chat && chat.jobId) {
+      const jobRequest = await prisma.jobRequest.findUnique({
+        where: { id: chat.jobId },
+        select: { jobTitle: true }
+      });
+      jobTitle = jobRequest?.jobTitle || '';
+    }
+
     const updatedChat = await prisma.chat.update({
       where: { id: chatId },
       data: { 
         chatStatus: "rejected"
+      },
+      include: {
+        participants: true
       }
     });
+
+    // Find the jobSeeker participant
+    const jobSeekerParticipant = updatedChat.participants.find(p => p.jobSeekerId);
+    if (jobSeekerParticipant) {
+      await prisma.notification.create({
+        data: {
+          clientId: userId,
+          jobSeekerId: jobSeekerParticipant.jobSeekerId,
+          notificationType: "chat-rejected",
+          notificationTitle: "Chat Rejected",
+          notificationMessage: `Your chat request for the job "${jobTitle}" has been rejected by the employer.`,
+          relatedIds: [chatId],
+          isRead: false,
+          createdAt: new Date(),
+        },
+      });
+    }
 
     // Notify via socket.io
     const io = req.app.get('socketio');
@@ -462,6 +541,8 @@ export const getUserProfile = async (req, res) => {
             houseNumber: true,
             gender: true,
             birthday: true,
+            jobsDone: true,
+            joinedAt: true,
           },
         },
         achievement: {
@@ -555,7 +636,9 @@ export const getUserProfile = async (req, res) => {
       phoneNumber: '', // Not currently stored in the schema
       gender: jobSeeker.user.gender,
       birthday: jobSeeker.user.birthday.toISOString(),
-      feedbacks
+      feedbacks,
+      jobsDone: jobSeeker.user.jobsDone || 0,
+      joinedAt: jobSeeker.user.joinedAt ? jobSeeker.user.joinedAt.toISOString() : null,
     };
 
     return res.status(200).json(response);
@@ -632,7 +715,8 @@ export const getClientProfile = async (req, res) => {
         houseNumber: true,
         gender: true,
         birthday: true,
-        // Add other fields as needed
+        jobsDone: true,
+        joinedAt: true,
       },
     });
 
@@ -648,7 +732,8 @@ export const getClientProfile = async (req, res) => {
       phoneNumber: '', // Not currently stored in the schema
       gender: user.gender,
       birthday: user.birthday ? user.birthday.toISOString() : null,
-      // No skills, services, or achievements
+      jobsDone: user.jobsDone || 0,
+      joinedAt: user.joinedAt ? user.joinedAt.toISOString() : null,
     };
 
     return res.status(200).json(response);

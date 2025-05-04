@@ -488,7 +488,6 @@ export function initializeSocketIO(httpServer) {
     
     socket.on("make_offer", async ({ jobRequestId, offerAmount, chatId }) => {
       try {
-
         console.log(jobRequestId,offerAmount)
         if (!chatId || !offerAmount) {
           socket.emit("make_offer_error", { message: "Missing chatId or offerAmount" });
@@ -503,9 +502,39 @@ export function initializeSocketIO(httpServer) {
             offerStatus: "pending",
           },
           include: {
-            participants: true
+            participants: {
+              include: {
+                jobSeeker: {
+                  include: {
+                    user: true
+                  }
+                }
+              }
+            }
           }
         });
+
+        // Find the job seeker participant and their user details
+        const jobSeekerParticipant = updatedChat.participants.find(p => p.jobSeekerId);
+        let jobSeekerName = "A job seeker";
+        if (jobSeekerParticipant && jobSeekerParticipant.jobSeeker && jobSeekerParticipant.jobSeeker.user) {
+          jobSeekerName = `${jobSeekerParticipant.jobSeeker.user.firstName} ${jobSeekerParticipant.jobSeeker.user.lastName}`;
+        }
+
+        // Fetch job title for notification
+        const job = await prisma.jobRequest.findUnique({
+          where: { id: jobRequestId },
+          select: { jobTitle: true }
+        });
+
+        const notification = {
+          type: "offer_made",
+          message: `${jobSeekerName} sent an offer of ₱${offerAmount} for "${job?.jobTitle ?? 'a job'}".`,
+          offerAmount,
+          jobTitle: job?.jobTitle ?? 'Unknown',
+          chatId,
+        };
+        io.to(chatId).emit("offer_notification", notification);
 
         // Emit success back to job seeker
         socket.emit("offer_made_success", {
@@ -522,7 +551,27 @@ export function initializeSocketIO(httpServer) {
           chatId,
         });
 
-    
+        // === NEW: Create notification in DB ===
+        const chatParticipants = updatedChat.participants;
+        const senderId = socket.user.id;
+        const recipientParticipant = chatParticipants.find(
+          p => (p.userId && p.userId !== senderId) || (p.jobSeekerId && p.jobSeekerId !== senderId)
+        );
+
+        if (recipientParticipant) {
+          await createNotification({
+            recipient: {
+              userId: recipientParticipant.userId,
+              jobSeekerId: recipientParticipant.jobSeekerId,
+            },
+            type: "offer_made",
+            title: "New Offer Made",
+            message: notification.message,
+            relatedIds: [chatId, jobRequestId].filter(Boolean),
+          });
+        }
+        // === END NEW ===
+
       } catch (error) {
         console.error("❌ make_offer error:", error);
         socket.emit("make_offer_error", { message: "Failed to make offer" });
@@ -555,7 +604,43 @@ export function initializeSocketIO(httpServer) {
           offerAmount: updatedChat.offer,
           offerStatus: updatedChat.offerStatus
         });
+
+        // Fetch job title for notification
+        const job = await prisma.jobRequest.findUnique({
+          where: { id: jobRequestId },
+          select: { jobTitle: true }
+        });
+
+        const notification = {
+          type: "offer_accepted",
+          message: `The offer of ₱${updatedChat.offer} for "${job?.jobTitle ?? 'a job'}" was accepted by the employer.`,
+          offerAmount: updatedChat.offer,
+          jobTitle: job?.jobTitle ?? 'Unknown',
+          chatId,
+        };
+        io.to(chatId).emit("offer_notification", notification);
     
+        // === NEW: Create notification in DB ===
+        const chatParticipants = updatedChat.participants;
+        const senderId = socket.user.id;
+        const recipientParticipant = chatParticipants.find(
+          p => (p.userId && p.userId !== senderId) || (p.jobSeekerId && p.jobSeekerId !== senderId)
+        );
+
+        if (recipientParticipant) {
+          await createNotification({
+            recipient: {
+              userId: recipientParticipant.userId,
+              jobSeekerId: recipientParticipant.jobSeekerId,
+            },
+            type: "offer_accepted",
+            title: "Offer Accepted",
+            message: notification.message,
+            relatedIds: [chatId, jobRequestId].filter(Boolean),
+          });
+        }
+        // === END NEW ===
+
       } catch (error) {
         console.error("❌ accept_offer error:", error);
         socket.emit("offer_error", { message: "Failed to accept offer" });
@@ -563,7 +648,7 @@ export function initializeSocketIO(httpServer) {
     });
     
     // Handle offer rejection
-    socket.on("reject_offer", async ({ chatId }) => {
+    socket.on("reject_offer", async ({ chatId, jobRequestId }) => {
       try {
         const updatedChat = await prisma.chat.update({
           where: { id: chatId },
@@ -577,7 +662,59 @@ export function initializeSocketIO(httpServer) {
           offerAmount: updatedChat.offer,
           offerStatus: updatedChat.offerStatus
         });
+
+        let offerAmount = updatedChat.offer;
+        let jobTitle = 'Unknown';
+        let jobId = null;
+
+        // Try to get jobRequestId from param, or from chat if missing
+        let actualJobRequestId = jobRequestId;
+        if (!actualJobRequestId && updatedChat.jobId) {
+          actualJobRequestId = updatedChat.jobId;
+        }
+
+        if (actualJobRequestId) {
+          const job = await prisma.jobRequest.findUnique({
+            where: { id: actualJobRequestId },
+            select: { jobTitle: true }
+          });
+          jobTitle = job?.jobTitle ?? 'Unknown';
+        }
+
+        const notification = {
+          type: "offer_rejected",
+          message: `The offer of ₱${offerAmount} for "${jobTitle}" was rejected by the employer.`,
+          offerAmount,
+          jobTitle,
+          chatId,
+        };
+        io.to(chatId).emit("offer_notification", notification);
     
+        // === NEW: Create notification in DB ===
+        const chat = await prisma.chat.findUnique({
+          where: { id: chatId },
+          include: { participants: true }
+        });
+        const chatParticipants = chat.participants;
+        const senderId = socket.user.id;
+        const recipientParticipant = chatParticipants.find(
+          p => (p.userId && p.userId !== senderId) || (p.jobSeekerId && p.jobSeekerId !== senderId)
+        );
+
+        if (recipientParticipant) {
+          await createNotification({
+            recipient: {
+              userId: recipientParticipant.userId,
+              jobSeekerId: recipientParticipant.jobSeekerId,
+            },
+            type: "offer_rejected",
+            title: "Your Offer Was Rejected",
+            message: `Unfortunately, your offer of ₱${offerAmount} for "${jobTitle}" was rejected by the employer.`,
+            relatedIds: [chatId, jobRequestId].filter(Boolean),
+          });
+        }
+        // === END NEW ===
+
       } catch (error) {
         console.error("❌ reject_offer error:", error);
         socket.emit("offer_error", { message: "Failed to reject offer" });
@@ -717,4 +854,19 @@ export function initializeSocketIO(httpServer) {
   
 
   return io;
+}
+
+async function createNotification({ recipient, type, title, message, relatedIds }) {
+  if (!recipient.userId) {
+    throw new Error('Notification must have a clientId (userId)');
+  }
+  const data = {
+    notificationType: type,
+    notificationTitle: title,
+    notificationMessage: message,
+    relatedIds: (relatedIds || []).filter(Boolean),
+    clientId: recipient.userId,
+  };
+  if (recipient.jobSeekerId) data.jobSeekerId = recipient.jobSeekerId;
+  await prisma.notification.create({ data });
 }

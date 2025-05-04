@@ -15,6 +15,8 @@ import {
   searchJobs,
   getTopCategories,
   searchJobSeekers,
+  getNotifications,
+  getJobRequestById,
 } from "../controllers/app.controller.js";
 import multer from "multer";
 import {
@@ -97,12 +99,14 @@ router.patch(
   editClientListings
 );
 router.get("/api/job-requests", authenticateToken, getJobRequests);
+router.get("/api/job-requests/:id", authenticateToken, getJobRequestById);
 router.get("/api/job-seeker/tags", authenticateToken, getJobSeekerTags);
 router.get("/api/job-seeker/my-jobs", authenticateToken, getMyJobs);
 router.post("/api/jobs/:jobId/complete", authenticateToken, markJobAsCompleted);
 router.post("/api/jobrequest/verify/:id", authenticateToken, reviewnRating);
 router.get("/api/jobs/search", authenticateToken, searchJobs);
 router.get("/api/jobs/top-categories", authenticateToken, getTopCategories);
+router.get("/api/notifications", authenticateToken, getNotifications);
 router.use(
   "/uploads",
   express.static(path.join(__dirname, "../assets/job_request_files"), {
