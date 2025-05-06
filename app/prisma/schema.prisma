@@ -29,7 +29,9 @@
     idValidationBackImage     String?
     idType     String?
     jobsDone     Int @default(0)
-    joinedAt     DateTime   @default(now())
+    joinedAt     DateTime   @default(now()) //applied at alternative
+    isVerified Boolean @default(false)
+    verifiedAt DateTime?  
     jobSeeker    JobSeeker?
     jobRequest   JobRequest[]
     post         Post[]
@@ -38,6 +40,9 @@
     notification Notification[]
     participants Participant[]
     Review        Review[]
+    
+
+
     @@map("users")
       
 }
