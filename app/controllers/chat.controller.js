@@ -742,3 +742,111 @@ export const getClientProfile = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+export const blockUser = async (req, res) => {
+  try {
+    const { blockedId, reason } = req.body;
+    const blockerId = req.user.id;
+
+    // Prevent self-blocking
+    if (blockerId === blockedId) {
+      return res.status(400).json({ message: "Cannot block yourself" });
+    }
+
+    // Check if already blocked
+    const existingBlock = await prisma.blockedUser.findUnique({
+      where: {
+        blockerId_blockedId: {
+          blockerId,
+          blockedId,
+        },
+      },
+    });
+
+    if (existingBlock) {
+      return res.status(400).json({ message: "User is already blocked" });
+    }
+
+    // Create block
+    const block = await prisma.blockedUser.create({
+      data: {
+        blockerId,
+        blockedId,
+        reason,
+      },
+    });
+
+    res.status(201).json(block);
+  } catch (error) {
+    console.error("Error blocking user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const unblockUser = async (req, res) => {
+  try {
+    const { blockedId } = req.params;
+    const blockerId = req.user.id;
+
+    const block = await prisma.blockedUser.delete({
+      where: {
+        blockerId_blockedId: {
+          blockerId,
+          blockedId,
+        },
+      },
+    });
+
+    res.status(200).json({ message: "User unblocked successfully" });
+  } catch (error) {
+    console.error("Error unblocking user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getBlockedUsers = async (req, res) => {
+  try {
+    const blockerId = req.user.id;
+
+    const blockedUsers = await prisma.blockedUser.findMany({
+      where: { blockerId },
+      include: {
+        blocked: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            profileImage: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json(blockedUsers);
+  } catch (error) {
+    console.error("Error fetching blocked users:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const isBlocked = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const blockerId = req.user.id;
+
+    const block = await prisma.blockedUser.findUnique({
+      where: {
+        blockerId_blockedId: {
+          blockerId,
+          blockedId: userId,
+        },
+      },
+    });
+
+    res.status(200).json({ isBlocked: !!block });
+  } catch (error) {
+    console.error("Error checking block status:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

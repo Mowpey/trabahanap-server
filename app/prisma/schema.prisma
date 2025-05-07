@@ -38,6 +38,8 @@
     notification Notification[]
     participants Participant[]
     Review        Review[]
+    blockedUsers    BlockedUser[] @relation("Blocker")
+    blockedByUsers  BlockedUser[] @relation("Blocked")
     @@map("users")
       
 }
@@ -286,6 +288,21 @@
     @@index([jobSeekerId])
     @@index([createdAt])
     @@map("notifications")
+  }
+
+  model BlockedUser {
+    id            String    @id @default(auto()) @map("_id") @db.ObjectId
+    blocker       User      @relation("Blocker", fields: [blockerId], references: [id])
+    blockerId     String    @db.ObjectId
+    blocked       User      @relation("Blocked", fields: [blockedId], references: [id])
+    blockedId     String    @db.ObjectId
+    blockedAt     DateTime  @default(now())
+    reason        String?
+    
+    @@unique([blockerId, blockedId])
+    @@index([blockerId])
+    @@index([blockedId])
+    @@map("blocked_users")
   }
 
 
