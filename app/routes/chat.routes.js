@@ -1,5 +1,7 @@
 import express from "express";
-import { getClientProfile,getReviews,createChat,getUserChats,sendMessage,getMessages,getStatus,chatReject,chatApprove,getReadStatus,getJobSeekerTags,getUserProfile} from "../controllers/chat.controller.js";
+import { getClientProfile,getReviews,createChat,getUserChats,sendMessage,getMessages,
+    getStatus,chatReject,chatApprove,getReadStatus,getJobSeekerTags,getUserProfile,
+    blockUser,unblockUser,getBlockedUsers,isBlocked,getJobRequestBudget} from "../controllers/chat.controller.js";
 import authenticateToken from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -16,4 +18,9 @@ router.get('/api/job-seeker/:id/tags', authenticateToken, getJobSeekerTags);
 router.get('/user/profile/:id/details',authenticateToken ,getUserProfile);
 router.get('/user/reviews/:id',authenticateToken ,getReviews);
 router.get('/api/clients/:id/profile',authenticateToken ,getClientProfile);
+router.post("/block", authenticateToken, blockUser);
+router.delete("/block/:blockedId", authenticateToken, unblockUser);
+router.get("/blocked", authenticateToken, getBlockedUsers);
+router.get("/block/check/:userId", authenticateToken, isBlocked);
+router.get('/job/:jobId/budget', authenticateToken, getJobRequestBudget);
 export default router;
