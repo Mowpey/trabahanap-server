@@ -4,6 +4,7 @@ import {
   decodeToken,
   storeOTP,
   verifyOtpOnly,
+  verifyApplicant,
 } from "../controllers/auth.controller.js";
 import express from "express";
 import multer from "multer";
@@ -38,6 +39,16 @@ router.post(
     { name: "idValidationBackImage", maxCount: 1 },
   ]),
   signUp
+);
+
+router.post(
+  "/verify-applicant",
+  signUpData.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "idValidationFrontImage", maxCount: 1 },
+    { name: "idValidationBackImage", maxCount: 1 },
+  ]),
+  verifyApplicant
 );
 
 export default router;

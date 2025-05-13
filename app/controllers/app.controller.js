@@ -365,7 +365,8 @@ export const reviewnRating = async (req, res) => {
       data: {
         clientId: userType === "client" ? reviewerId : job.clientId,
         jobSeekerId: userType === "job-seeker" ? reviewerId : reviewedId,
-        notificationType: userType === "client" ? "review-jobseeker" : "review-client",
+        notificationType:
+          userType === "client" ? "review-jobseeker" : "review-client",
         notificationTitle: "You received a new review!",
         notificationMessage: `You have received a new review from ${review.reviewer.firstName}.`,
         relatedIds: [jobId],
