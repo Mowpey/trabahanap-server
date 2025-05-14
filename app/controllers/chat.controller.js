@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
 import { Console } from "console";
+import { sendPushNotification } from './notification.controller.js';
 
 const prisma = new PrismaClient();
 
@@ -87,6 +88,26 @@ export const createChat = async (req, res) => {
             createdAt: new Date(),
           },
         });
+
+        // Get client's push token
+        const client = await prisma.user.findUnique({
+          where: { id: clientId },
+          select: { pushToken: true }
+        });
+
+        // Send push notification if token exists
+        if (client?.pushToken) {
+          await sendPushNotification(
+            client.pushToken,
+            "New Chat Request",
+            `A job seeker has requested to chat about your job posting "${job.jobTitle}".`,
+            {
+              type: 'chat-request',
+              chatId: chat.id,
+              jobId: jobId
+            }
+          );
+        }
     }
 
     res.json({ chatId: chat.id,
@@ -878,6 +899,27 @@ export const getJobRequestBudget = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching job request budget:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getUsersWhoBlockedMe = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const blockedByUsers = await prisma.blockedUser.findMany({
+      where: { blockedId: userId },
+      select: {
+        blockerId: true
+      }
+    });
+
+    // Extract just the blocker IDs from the results
+    const blockerIds = blockedByUsers.map(block => block.blockerId);
+
+    res.status(200).json(blockerIds);
+  } catch (error) {
+    console.error("Error fetching users who blocked me:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

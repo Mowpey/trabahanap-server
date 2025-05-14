@@ -1,9 +1,9 @@
 import express from "express";
 import { getClientProfile,getReviews,createChat,getUserChats,sendMessage,getMessages,
     getStatus,chatReject,chatApprove,getReadStatus,getJobSeekerTags,getUserProfile,
-    blockUser,unblockUser,getBlockedUsers,isBlocked,getJobRequestBudget} from "../controllers/chat.controller.js";
+    blockUser,unblockUser,getBlockedUsers,isBlocked,getJobRequestBudget,getUsersWhoBlockedMe} from "../controllers/chat.controller.js";
 import authenticateToken from "../middleware/auth.middleware.js";
-
+import { storePushToken } from '../controllers/notification.controller.js';
 const router = express.Router();
 
 router.post("/api/chat/create", authenticateToken, createChat);
@@ -23,4 +23,6 @@ router.delete("/block/:blockedId", authenticateToken, unblockUser);
 router.get("/blocked", authenticateToken, getBlockedUsers);
 router.get("/block/check/:userId", authenticateToken, isBlocked);
 router.get('/job/:jobId/budget', authenticateToken, getJobRequestBudget);
+router.post("/api/push-token", authenticateToken, storePushToken);
+router.get('/users/:id/blocked-by', authenticateToken, getUsersWhoBlockedMe);
 export default router;

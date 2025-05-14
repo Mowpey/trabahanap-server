@@ -40,7 +40,7 @@
     notification Notification[]
     participants Participant[]
     Review        Review[]
-
+    pushToken    String?    // Add this field for storing Expo push tokens
     blockedUsers    BlockedUser[] @relation("Blocker")
     blockedByUsers  BlockedUser[] @relation("Blocked")
 
