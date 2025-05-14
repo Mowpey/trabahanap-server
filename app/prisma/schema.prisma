@@ -1,5 +1,7 @@
+
 generator client {
   provider = "prisma-client-js"
+
 }
 
 datasource db {
@@ -32,6 +34,7 @@ model User {
   joinedAt               DateTime       @default(now()) //applied at alternative
   verificationStatus     String         @default("")
   verifiedAt             DateTime?    @default(now())
+  pushToken              String?
   jobSeeker              JobSeeker?
   jobRequest             JobRequest[]
   post                   Post[]

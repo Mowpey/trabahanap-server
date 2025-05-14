@@ -644,6 +644,87 @@ export const getNotifications = async (req, res) => {
   }
 };
 
+export const markNotificationsAsRead = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userType = req.user.userType;
+
+    // Build the where clause based on user type
+    let whereClause = { isRead: false }; // Only update unread notifications
+    
+    if (userType === "client") {
+      whereClause.clientId = userId;
+    } else if (userType === "job-seeker") {
+      // Find the jobSeekerId for this user
+      const jobSeeker = await prisma.jobSeeker.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+      
+      if (jobSeeker) {
+        whereClause.jobSeekerId = jobSeeker.id;
+      } else {
+        return res.status(404).json({ error: "Job seeker profile not found." });
+      }
+    } else {
+      return res.status(400).json({ error: "Invalid user type." });
+    }
+
+    // Update all matching notifications to be marked as read
+    const result = await prisma.notification.updateMany({
+      where: whereClause,
+      data: { isRead: true }
+    });
+
+    res.json({ 
+      message: "Notifications marked as read successfully",
+      count: result.count 
+    });
+  } catch (error) {
+    console.error("Error marking notifications as read:", error);
+    res.status(500).json({ error: "Failed to mark notifications as read" });
+  }
+};
+
+export const hasUnreadNotifications = async (req, res) => {
+  try {
+    const userId = req.user.id; // Assumes authentication middleware sets req.user
+    const userType = req.user.userType; // e.g., "client" or "job-seeker"
+
+    // Build the where clause based on user type
+    let whereClause = { isRead: false }; // Add condition for unread notifications
+    
+    if (userType === "client") {
+      whereClause.clientId = userId;
+    } else if (userType === "job-seeker") {
+      // Find the jobSeekerId for this user
+      const jobSeeker = await prisma.jobSeeker.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+      
+      if (jobSeeker) {
+        whereClause.jobSeekerId = jobSeeker.id; // Using jobSeeker.id, not userId
+      } else {
+        return res.status(404).json({ error: "Job seeker profile not found." });
+      }
+    } else {
+      return res.status(400).json({ error: "Invalid user type." });
+    }
+
+    // Count unread notifications - more efficient than fetching all records
+    const count = await prisma.notification.count({
+      where: whereClause
+    });
+
+    // Return true if there's at least one unread notification, false otherwise
+    res.json({ hasUnread: count > 0 });
+  } catch (error) {
+    console.error("Error checking unread notifications:", error);
+    res.status(500).json({ error: "Failed to check unread notifications" });
+  }
+};
+
 export const getJobRequestById = async (req, res) => {
   try {
     const { id } = req.params; // Get the job request ID from the URL parameter

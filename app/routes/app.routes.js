@@ -17,6 +17,8 @@ import {
   searchJobSeekers,
   getNotifications,
   getJobRequestById,
+  markNotificationsAsRead,
+  hasUnreadNotifications,
 } from "../controllers/app.controller.js";
 import multer from "multer";
 import {
@@ -107,6 +109,8 @@ router.post("/api/jobrequest/verify/:id", authenticateToken, reviewnRating);
 router.get("/api/jobs/search", authenticateToken, searchJobs);
 router.get("/api/jobs/top-categories", authenticateToken, getTopCategories);
 router.get("/api/notifications", authenticateToken, getNotifications);
+router.get("/api/hasUnreadNotification",authenticateToken,hasUnreadNotifications)
+router.put('/notifications/mark-read', authenticateToken,markNotificationsAsRead);
 router.use(
   "/uploads",
   express.static(path.join(__dirname, "../assets/job_request_files"), {
