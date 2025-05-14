@@ -1,167 +1,170 @@
-  generator client {
-    provider = "prisma-client-js"
-  }
 
-  datasource db {
-    provider = "mongodb"
-    url      = env("DATABASE_URL")
-  }
-
-  model User {
-    id           String         @id @default(auto()) @map("_id") @db.ObjectId
-    firstName    String
-    middleName   String?
-    lastName     String
-    suffixName   String?
-    gender       String
-    birthday     DateTime
-    age          Int
-    emailAddress String
-    password     String
-    phoneNumber  String?
-    profileImage String?
-    bio          String?
-    barangay     String
-    street       String
-    houseNumber  String?
-    userType     String
-    idValidationFrontImage     String?
-    idValidationBackImage     String?
-    idType     String?
-    jobsDone     Int @default(0)
-    joinedAt     DateTime   @default(now()) //applied at alternative
-    isVerified Boolean @default(false)
-    verifiedAt DateTime?  
-    jobSeeker    JobSeeker?
-    jobRequest   JobRequest[]
-    post         Post[]
-    like         Like[]
-    comment      Comment[]
-    notification Notification[]
-    participants Participant[]
-    Review        Review[]
-    pushToken    String?    // Add this field for storing Expo push tokens
-    blockedUsers    BlockedUser[] @relation("Blocker")
-    blockedByUsers  BlockedUser[] @relation("Blocked")
-
-    
-
-
-
-    @@map("users")
-      
-}
-
-  model JobSeeker {
-    id           String         @id @default(auto()) @map("_id") @db.ObjectId
-    user         User           @relation(fields: [userId], references: [id])
-    userId       String         @unique @db.ObjectId
-    availability Boolean
-    credentials  String?
-    hourlyRate   String
-    rate         Float?
-    jobTags      JobTag[]
-    achievement  Achievement[]
-    milestone    Milestone[]
-    jobRequest   JobRequest[]
-    post         Post[]
-    like         Like[]
-    comment      Comment[]
-    notification Notification[]
-    participants Participant[]
-    Review Review[]
-    @@map("jobseekers")
+generator client {
+  provider = "prisma-client-js"
 
 }
 
-  model Achievement {
-    id               String    @id @default(auto()) @map("_id") @db.ObjectId
-    achievementName  String
-    jobRequired      String
-    requiredJobCount Int
-    achievementIcon  String
-    jobSeeker        JobSeeker @relation(fields: [jobSeekerId], references: [id])
-    jobSeekerId      String    @db.ObjectId
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
 
-    @@map("achievements")
-  }
+model User {
+  id                     String         @id @default(auto()) @map("_id") @db.ObjectId
+  firstName              String
+  middleName             String?
+  lastName               String
+  suffixName             String?
+  gender                 String
+  birthday               DateTime
+  age                    Int
+  emailAddress           String
+  password               String
+  phoneNumber            String?
+  profileImage           String?
+  bio                    String?
+  barangay               String
+  street                 String
+  houseNumber            String?
+  userType               String
+  idValidationFrontImage String?
+  idValidationBackImage  String?
+  idType                 String?
+  jobsDone               Int            @default(0)
+  joinedAt               DateTime       @default(now()) //applied at alternative
+  verificationStatus     String         @default("")
+  verifiedAt             DateTime?    @default(now())
+  pushToken              String?
+  jobSeeker              JobSeeker?
+  jobRequest             JobRequest[]
+  post                   Post[]
+  like                   Like[]
+  comment                Comment[]
+  notification           Notification[]
+  participants           Participant[]
+  Review                 Review[]
 
-  model Milestone {
-    id                   String    @id @default(auto()) @map("_id") @db.ObjectId
-    milestoneTitle       String
-    milestoneDescription String
-    jobsCompleted        Int
-    experienceLevel      String
-    achievedAt           DateTime  @default(value: now())
-    jobSeeker            JobSeeker @relation(fields: [jobSeekerId], references: [id])
-    jobSeekerId          String    @db.ObjectId
+  blockedUsers   BlockedUser[] @relation("Blocker")
+  blockedByUsers BlockedUser[] @relation("Blocked")
 
-    @@map("milestones")
-  }
+  applicants Applicants[]
 
-  enum JobTag {
-    plumbing
-    electricalRepairs
-    carpentry
-    roofRepair
-    paintingServices
-    welding
-    glassInstallation
-    airconRepairAndCleaning
-    applianceRepair
-    pestControlServices
-    autoMechanic
-    carWash
-    motorcycleRepair
-    carAirconRepair
-    windowTinting
-    caregiver
-    personalDriver
-    massageTherapy
-    petGroomingAndPetCare
-    homeCleaningServices
-    laundryServices
-    gardening
-  }
+  @@map("users")
+}
 
-  model JobRequest {
-    id               String     @id @default(auto()) @map("_id") @db.ObjectId
-    client           User       @relation(fields: [clientId], references: [id])
-    clientId         String     @db.ObjectId
-    jobSeeker        JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-    jobSeekerId      String?     @default("") @db.ObjectId
-    jobTitle         String
-    jobDescription   String
-    category         String
-    jobLocation      String
-    jobStatus        String     @default("vacant")
-    budget           String
-    offer            String? 
-    jobDuration      String     @default("")
-    jobImage         String[]
-    applicantCount   Int        @default(0)
-    datePosted       DateTime   @default(now())
-    reviews          Review[]   // New relation
-    acceptedAt       DateTime
-    completedAt      DateTime
-    verifiedAt       DateTime
+model JobSeeker {
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  user         User           @relation(fields: [userId], references: [id])
+  userId       String         @unique @db.ObjectId
+  availability Boolean
+  credentials  String?
+  hourlyRate   String
+  rate         Float?
+  joinedAt     DateTime       @default(now())
+  jobTags      JobTag[]
+  achievement  Achievement[]
+  milestone    Milestone[]
+  jobRequest   JobRequest[]
+  post         Post[]
+  like         Like[]
+  comment      Comment[]
+  notification Notification[]
+  participants Participant[]
+  Review       Review[]
 
-    @@map("jobrequest")
-  }
-  model Review {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  jobRequest  JobRequest @relation(fields: [jobRequestId], references: [id])
-  jobRequestId String   @db.ObjectId
-  reviewer    User      @relation(fields: [reviewerId], references: [id])
-  reviewerId  String    @db.ObjectId
 
-  reviewed    JobSeeker @relation(fields: [reviewedId], references: [id])
-  reviewedId  String    @db.ObjectId
+  @@map("jobseekers")
+}
 
-  rating      Int       @default(1)
-  feedback    String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+model Achievement {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  achievementName  String
+  jobRequired      String
+  requiredJobCount Int
+  achievementIcon  String
+  jobSeeker        JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId      String    @db.ObjectId
+
+  @@map("achievements")
+}
+
+model Milestone {
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  milestoneTitle       String
+  milestoneDescription String
+  jobsCompleted        Int
+  experienceLevel      String
+  achievedAt           DateTime  @default(value: now())
+  jobSeeker            JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId          String    @db.ObjectId
+
+  @@map("milestones")
+}
+
+enum JobTag {
+  plumbing
+  electricalRepairs
+  carpentry
+  roofRepair
+  paintingServices
+  welding
+  glassInstallation
+  airconRepairAndCleaning
+  applianceRepair
+  pestControlServices
+  autoMechanic
+  carWash
+  motorcycleRepair
+  carAirconRepair
+  windowTinting
+  caregiver
+  personalDriver
+  massageTherapy
+  petGroomingAndPetCare
+  homeCleaningServices
+  laundryServices
+  gardening
+}
+
+model JobRequest {
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  client         User       @relation(fields: [clientId], references: [id])
+  clientId       String     @db.ObjectId
+  jobSeeker      JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId    String?    @default("") @db.ObjectId
+  jobTitle       String
+  jobDescription String
+  category       String
+  jobLocation    String
+  jobStatus      String     @default("vacant")
+  budget         String
+  offer          String?
+  jobDuration    String     @default("")
+  jobImage       String[]
+  applicantCount Int        @default(0)
+  datePosted     DateTime   @default(now())
+  reviews        Review[] // New relation
+  acceptedAt     DateTime
+  completedAt    DateTime
+  verifiedAt     DateTime
+
+  @@map("jobrequest")
+}
+
+model Review {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  jobRequest   JobRequest @relation(fields: [jobRequestId], references: [id])
+  jobRequestId String     @db.ObjectId
+  reviewer     User       @relation(fields: [reviewerId], references: [id])
+  reviewerId   String     @db.ObjectId
+
+  reviewed   JobSeeker @relation(fields: [reviewedId], references: [id])
+  reviewedId String    @db.ObjectId
+
+  rating    Int      @default(1)
+  feedback  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([jobRequestId])
   @@index([reviewerId])
@@ -169,148 +172,193 @@
   @@map("reviews")
 }
 
-  model Post {
-    id           String    @id @default(auto()) @map("_id") @db.ObjectId
-    client       User?      @relation(fields: [clientId], references: [id])
-    clientId     String    @db.ObjectId @default("")
-    jobSeeker    JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-    jobSeekerId  String    @db.ObjectId @default("")
-    postContent  String
-    postImage    String?
-    likeCount    Int
-    commentCount Int
-    createdAt    DateTime
-    like         Like[]
-    comment      Comment[]
+model Post {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  client       User?      @relation(fields: [clientId], references: [id])
+  clientId     String     @default("") @db.ObjectId
+  jobSeeker    JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId  String     @default("") @db.ObjectId
+  postContent  String
+  postImage    String?
+  likeCount    Int
+  commentCount Int
+  createdAt    DateTime
+  like         Like[]
+  comment      Comment[]
 
-    @@map("post")
-  }
+  @@map("post")
+}
 
-  model Like {
-    id          String    @id @default(auto()) @map("_id") @db.ObjectId
-    post        Post      @relation(fields: [postId], references: [id])
-    postId      String    @db.ObjectId
-    client      User?      @relation(fields: [clientId], references: [id])
-    clientId    String    @db.ObjectId @default("")
-    jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-    jobSeekerId String    @db.ObjectId @default("")
-    likedAt     DateTime
+model Like {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  post        Post       @relation(fields: [postId], references: [id])
+  postId      String     @db.ObjectId
+  client      User?      @relation(fields: [clientId], references: [id])
+  clientId    String     @default("") @db.ObjectId
+  jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId String     @default("") @db.ObjectId
+  likedAt     DateTime
 
-    @@map("like")
-  }
+  @@map("like")
+}
 
-  model Comment {
-    id          String    @id @default(auto()) @map("_id") @db.ObjectId
-    post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-    postId      String    @db.ObjectId
-    client      User?      @relation(fields: [clientId], references: [id])
-    clientId    String?    @db.ObjectId
-    jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-    jobSeekerId String?    @db.ObjectId
-    comment     String
-    createdAt   DateTime
+model Comment {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  post        Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId      String     @db.ObjectId
+  client      User?      @relation(fields: [clientId], references: [id])
+  clientId    String?    @db.ObjectId
+  jobSeeker   JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId String?    @db.ObjectId
+  comment     String
+  createdAt   DateTime
 
-    parentCommentId String? @db.ObjectId
-    parentComment Comment? @relation("Replies", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-    replies Comment[] @relation("Replies")
+  parentCommentId String?   @db.ObjectId
+  parentComment   Comment?  @relation("Replies", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies         Comment[] @relation("Replies")
 
-    @@map("comment")
-  }
+  @@map("comment")
+}
 
-  model Chat {
-    id            String        @id @default(auto()) @map("_id") @db.ObjectId
-    participants  Participant[]
-    createdAt     DateTime      @default(now())
-    lastMessageAt DateTime?     
-    chatTitle     String  
-    chatStatus    String        @default("pending")
-    jobId         String        @db.ObjectId
-    offer         String?       
-    offerStatus   String?      @default("none")
-    messages      Message[]
-    
+model Chat {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  participants  Participant[]
+  createdAt     DateTime      @default(now())
+  lastMessageAt DateTime?
+  chatTitle     String
+  chatStatus    String        @default("pending")
+  jobId         String        @db.ObjectId
+  offer         String?
+  offerStatus   String?       @default("none")
+  messages      Message[]
 
-    @@map("chat")
-  }
+  @@map("chat")
+}
 
-  model Participant {
-    id          String      @id @default(auto()) @map("_id") @db.ObjectId
-    chat        Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
-    chatId      String      @db.ObjectId
-    user        User       @relation(fields: [userId], references: [id], onDelete: Cascade) 
-    userId      String     @db.ObjectId
-    jobSeeker   JobSeeker  @relation(fields: [jobSeekerId], references: [userId], onDelete: Cascade)//ichanged
-    jobSeekerId String     @db.ObjectId
-    joinedAt    DateTime    @default(now())
-    messageStatus String?  //prisma generate mamaya
-    deletedByClient   Boolean     @default(false)
-    deletedByJobSeeker Boolean    @default(false)
-    messages    Message[]  
-    readStatuses ReadStatus[]
-    @@map("participants")
-  }
+model Participant {
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  chat               Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId             String       @db.ObjectId
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String       @db.ObjectId
+  jobSeeker          JobSeeker    @relation(fields: [jobSeekerId], references: [userId], onDelete: Cascade) //ichanged
+  jobSeekerId        String       @db.ObjectId
+  joinedAt           DateTime     @default(now())
+  messageStatus      String? //prisma generate mamaya
+  deletedByClient    Boolean      @default(false)
+  deletedByJobSeeker Boolean      @default(false)
+  messages           Message[]
+  readStatuses       ReadStatus[]
 
-  model Message {
-    id             String       @id @default(auto()) @map("_id") @db.ObjectId
-    chat           Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
-    chatId         String       @db.ObjectId
-    sender         Participant  @relation(fields: [senderId], references: [id], onDelete: Cascade)
-    senderId       String       @db.ObjectId
-    messageContent String
-    sentAt         DateTime      @default(now())
-    messageType    String
-    deletedBySender      String  @default("no")
-    deletedByReceiver    String  @default("no")
-    readBy         ReadStatus[]
+  @@map("participants")
+}
 
-    @@map("messages")
-  }
+model Message {
+  id                String       @id @default(auto()) @map("_id") @db.ObjectId
+  chat              Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId            String       @db.ObjectId
+  sender            Participant  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderId          String       @db.ObjectId
+  messageContent    String
+  sentAt            DateTime     @default(now())
+  messageType       String
+  deletedBySender   String       @default("no")
+  deletedByReceiver String       @default("no")
+  readBy            ReadStatus[]
 
-  model ReadStatus {
-    id            String      @id @default(auto()) @map("_id") @db.ObjectId
-    message       Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
-    messageId     String      @db.ObjectId
-    participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-    participantId String      @db.ObjectId
-    readAt        DateTime?  
-    @@unique([messageId, participantId])
-    @@map("read_status")
-  }
+  @@map("messages")
+}
 
-  model Notification {
-    id                  String     @id @default(auto()) @map("_id") @db.ObjectId
-    client              User       @relation(fields: [clientId], references: [id])
-    clientId            String     @db.ObjectId
-    jobSeeker           JobSeeker? @relation(fields: [jobSeekerId], references: [id])
-    jobSeekerId         String?    @db.ObjectId
-    notificationType    String     // Consider Enum for fixed types
-    notificationTitle   String
-    notificationMessage String
-    relatedIds          String[]   @db.ObjectId  // Renamed for clarity
-    isRead              Boolean    @default(false)
-    createdAt           DateTime   @default(now())
-    readAt              DateTime?
+model ReadStatus {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  message       Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId     String      @db.ObjectId
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  participantId String      @db.ObjectId
+  readAt        DateTime?
 
-    // Indexes for better query performance
-    @@index([clientId])
-    @@index([jobSeekerId])
-    @@index([createdAt])
-    @@map("notifications")
-  }
+  @@unique([messageId, participantId])
+  @@map("read_status")
+}
 
-  model BlockedUser {
-    id            String    @id @default(auto()) @map("_id") @db.ObjectId
-    blocker       User      @relation("Blocker", fields: [blockerId], references: [id])
-    blockerId     String    @db.ObjectId
-    blocked       User      @relation("Blocked", fields: [blockedId], references: [id])
-    blockedId     String    @db.ObjectId
-    blockedAt     DateTime  @default(now())
-    reason        String?
-    
-    @@unique([blockerId, blockedId])
-    @@index([blockerId])
-    @@index([blockedId])
-    @@map("blocked_users")
-  }
+model Notification {
+  id                  String     @id @default(auto()) @map("_id") @db.ObjectId
+  client              User       @relation(fields: [clientId], references: [id])
+  clientId            String     @db.ObjectId
+  jobSeeker           JobSeeker? @relation(fields: [jobSeekerId], references: [id])
+  jobSeekerId         String?    @db.ObjectId
+  notificationType    String // Consider Enum for fixed types
+  notificationTitle   String
+  notificationMessage String
+  relatedIds          String[]   @db.ObjectId // Renamed for clarity
+  isRead              Boolean    @default(false)
+  createdAt           DateTime   @default(now())
+  readAt              DateTime?
 
+  // Indexes for better query performance
+  @@index([clientId])
+  @@index([jobSeekerId])
+  @@index([createdAt])
+  @@map("notifications")
+}
 
+model BlockedUser {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id])
+  blockerId String   @db.ObjectId
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id])
+  blockedId String   @db.ObjectId
+  blockedAt DateTime @default(now())
+  reason    String?
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+  @@map("blocked_users")
+}
+
+model Applicants {
+  id                     String               @id @default(auto()) @map("_id") @db.ObjectId
+  firstName              String
+  middleName             String?
+  lastName               String
+  suffixName             String?
+  gender                 String
+  birthday               DateTime
+  age                    Int
+  emailAddress           String
+  password               String
+  phoneNumber            String?
+  profileImage           String?
+  bio                    String?
+  barangay               String
+  street                 String
+  houseNumber            String?
+  userType               String
+  idValidationFrontImage String?
+  idValidationBackImage  String?
+  idType                 String?
+  jobsDone               Int                  @default(0)
+  joinedAt               DateTime             @default(now())
+  verifiedAt             DateTime?
+  verificationStatus     String               @default("pending")
+  user                   User?                @relation(fields: [userId], references: [id])
+  userId                 String?              @db.ObjectId
+  applicantJobSeekers    ApplicantJobSeeker[]
+
+  @@map("applicants")
+}
+
+model ApplicantJobSeeker {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  applicant    Applicants @relation(fields: [applicantId], references: [id])
+  applicantId  String     @db.ObjectId
+  jobSeekerId  String?    @db.ObjectId
+  joinedAt     DateTime   @default(now())
+  availability Boolean    @default(true)
+  hourlyRate   String     @default("0")
+  credentials  String?
+  jobTags      JobTag[] // Using the same enum as JobSeeker
+
+  @@map("applicant_jobseeker")
+}
