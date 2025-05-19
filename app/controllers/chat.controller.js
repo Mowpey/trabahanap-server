@@ -1,21 +1,21 @@
 import { PrismaClient } from "@prisma/client";
-import fs from 'fs';
-import path from 'path';
-import multer from 'multer';
+import fs from "fs";
+import path from "path";
+import multer from "multer";
 import { Console } from "console";
-import { sendPushNotification } from './notification.controller.js';
+import { sendPushNotification } from "./notification.controller.js";
 
 const prisma = new PrismaClient();
 
 export const createChat = async (req, res) => {
   try {
-    const { clientId, jobId} = req.body;
+    const { clientId, jobId } = req.body;
 
     const jobSeekerId = req.user.id; // The job seeker (current user)
     const io = req.app.get("socketio");
     const job = await prisma.jobRequest.findUnique({
       where: { id: jobId },
-      select: { jobTitle: true }
+      select: { jobTitle: true },
     });
 
     if (!job) {
@@ -31,19 +31,17 @@ export const createChat = async (req, res) => {
       },
       include: { participants: true },
     });
-    
-    
 
     if (!chat) {
       chat = await prisma.chat.create({
         data: {
           chatTitle: job.jobTitle,
           chatStatus: "pending",
-          jobId:jobId,
+          jobId: jobId,
           participants: {
             create: [
               {
-                userId: clientId, 
+                userId: clientId,
                 jobSeekerId: jobSeekerId, // Both in one document ✅
               },
             ],
@@ -55,66 +53,68 @@ export const createChat = async (req, res) => {
         where: { id: jobId },
         data: {
           applicantCount: {
-            increment: 1
-          }
-        }
-      })
-        // After creating the chat
-        io.to(`user_${clientId}`).to(`user_${jobSeekerId}`).emit("new_chat", {
-          chatId: chat.id,
-          chatTitle: chat.chatTitle,
-          chatStatus: chat.chatStatus,
-          jobId : jobId,
-          participants: chat.participants
-        });
-
-        // Also emit to update the chat list
-        io.to(`user_${clientId}`).to(`user_${jobSeekerId}`).emit("chat_updated", {
-          id: chat.id,
-          lastMessage: "Chat created",
-          lastMessageTime: new Date()
-        });
-
-        // Notify the client
-        await prisma.notification.create({
-          data: {
-            clientId: clientId,
-            jobSeekerId: jobSeekerId,
-            notificationType: "chat-request",
-            notificationTitle: "New Chat Request",
-            notificationMessage: `A job seeker has requested to chat about your job posting "${job.jobTitle}".`,
-            relatedIds: [jobId],
-            isRead: false,
-            createdAt: new Date(),
+            increment: 1,
           },
-        });
+        },
+      });
+      // After creating the chat
+      io.to(`user_${clientId}`).to(`user_${jobSeekerId}`).emit("new_chat", {
+        chatId: chat.id,
+        chatTitle: chat.chatTitle,
+        chatStatus: chat.chatStatus,
+        jobId: jobId,
+        participants: chat.participants,
+      });
 
-        // Get client's push token
-        const client = await prisma.user.findUnique({
-          where: { id: clientId },
-          select: { pushToken: true }
-        });
+      // Also emit to update the chat list
+      io.to(`user_${clientId}`).to(`user_${jobSeekerId}`).emit("chat_updated", {
+        id: chat.id,
+        lastMessage: "Chat created",
+        lastMessageTime: new Date(),
+      });
 
-        // Send push notification if token exists
-        if (client?.pushToken) {
-          await sendPushNotification(
-            client.pushToken,
-            "New Chat Request",
-            `A job seeker has requested to chat about your job posting "${job.jobTitle}".`,
-            {
-              type: 'chat-request',
-              chatId: chat.id,
-              jobId: jobId
-            }
-          );
-        }
+      // Notify the client
+      await prisma.notification.create({
+        data: {
+          clientId: clientId,
+          jobSeekerId: jobSeekerId,
+          notificationType: "chat-request",
+          notificationTitle: "New Chat Request",
+          notificationMessage: `A job seeker has requested to chat about your job posting "${job.jobTitle}".`,
+          relatedIds: [jobId],
+          isRead: false,
+          createdAt: new Date(),
+        },
+      });
+
+      // Get client's push token
+      const client = await prisma.user.findUnique({
+        where: { id: clientId },
+        select: { pushToken: true },
+      });
+
+      // Send push notification if token exists
+      if (client?.pushToken) {
+        await sendPushNotification(
+          client.pushToken,
+          "New Chat Request",
+          `A job seeker has requested to chat about your job posting "${job.jobTitle}".`,
+          {
+            type: "chat-request",
+            chatId: chat.id,
+            jobId: jobId,
+          }
+        );
+      }
     }
 
-    res.json({ chatId: chat.id,
-               chatTitle: chat.chatTitle,
-               chatStatus:chat.chatStatus,
-               jobId : jobId,
-               participants: chat.participants });
+    res.json({
+      chatId: chat.id,
+      chatTitle: chat.chatTitle,
+      chatStatus: chat.chatStatus,
+      jobId: jobId,
+      participants: chat.participants,
+    });
     console.log("Chat Participants Added");
   } catch (error) {
     console.log("Error here");
@@ -122,8 +122,6 @@ export const createChat = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
-
-
 
 export const getUserChats = async (req, res) => {
   try {
@@ -133,7 +131,7 @@ export const getUserChats = async (req, res) => {
     // Check if user is a JobSeeker
     const userAsJobSeeker = await prisma.jobSeeker.findUnique({
       where: { userId },
-      include: { user: true }
+      include: { user: true },
     });
 
     const isJobSeeker = !!userAsJobSeeker; // Boolean to check if the user is a Job Seeker
@@ -145,72 +143,85 @@ export const getUserChats = async (req, res) => {
         participants: {
           // Must have TWO participants: one client (user) and one jobseeker
           some: {
-            userId: userId // Current user is the client
+            userId: userId, // Current user is the client
           },
           some: {
-            jobSeekerId: userAsJobSeeker?.id // Current user is the jobseeker
-          }
-        }
+            jobSeekerId: userAsJobSeeker?.id, // Current user is the jobseeker
+          },
+        },
       },
       include: {
         participants: {
           include: {
-            user: true,       // Client data
-            jobSeeker: {      // Jobseeker data
+            user: true, // Client data
+            jobSeeker: {
+              // Jobseeker data
               include: {
-                user: true    // Jobseeker's user profile
-              }
-            }
-          }
+                user: true, // Jobseeker's user profile
+              },
+            },
+          },
         },
         messages: {
           orderBy: { sentAt: "desc" },
-          take: 1
-        }
-      }
+          take: 1,
+        },
+      },
     });
 
-    const transformedChats = chats.map(chat => {
-      // Verify the chat has exactly 2 participants
-      if (chat.participants.length !== 2) {
-        console.error(`Chat ${chat.id} has invalid participants count`);
-        return null;
-      }
-    
-      // Identify client and jobseeker
-      const clientParticipant = chat.participants.find(p => p.userId && !p.jobSeekerId);
-      const jobSeekerParticipant = chat.participants.find(p => p.jobSeekerId && !p.userId);
-    
-      if (!clientParticipant || !jobSeekerParticipant) {
-        console.error(`Chat ${chat.id} is missing required participant types`);
-        return null;
-      }
-    
-      // Get the OTHER participant's details
-      const otherParticipant = userId === clientParticipant.userId 
-        ? jobSeekerParticipant 
-        : clientParticipant;
-    
-      const participantName = otherParticipant.jobSeeker
-        ? `${otherParticipant.jobSeeker.user.firstName} ${otherParticipant.jobSeeker.user.lastName}`
-        : `${otherParticipant.user.firstName} ${otherParticipant.user.lastName}`;
-    
-      const profileImage = otherParticipant.jobSeeker
-        ? otherParticipant.jobSeeker.user.profileImage
-        : otherParticipant.user.profileImage;
-    
-      return {
-        id: chat.id,
-        participantName,
-        profileImage,
-        lastMessage: chat.messages[0]?.messageContent || null,
-        lastMessageTime: chat.lastMessageAt,
-        offer: chat.offer || null,
-        offerStatus: chat.offerStatus || 'none'
-      };
-    }).filter(chat => chat !== null); // Remove invalid chats
+    const transformedChats = chats
+      .map((chat) => {
+        // Verify the chat has exactly 2 participants
+        if (chat.participants.length !== 2) {
+          console.error(`Chat ${chat.id} has invalid participants count`);
+          return null;
+        }
 
-    console.log("🔍 Transformed Chats:", JSON.stringify(transformedChats, null, 2));
+        // Identify client and jobseeker
+        const clientParticipant = chat.participants.find(
+          (p) => p.userId && !p.jobSeekerId
+        );
+        const jobSeekerParticipant = chat.participants.find(
+          (p) => p.jobSeekerId && !p.userId
+        );
+
+        if (!clientParticipant || !jobSeekerParticipant) {
+          console.error(
+            `Chat ${chat.id} is missing required participant types`
+          );
+          return null;
+        }
+
+        // Get the OTHER participant's details
+        const otherParticipant =
+          userId === clientParticipant.userId
+            ? jobSeekerParticipant
+            : clientParticipant;
+
+        const participantName = otherParticipant.jobSeeker
+          ? `${otherParticipant.jobSeeker.user.firstName} ${otherParticipant.jobSeeker.user.lastName}`
+          : `${otherParticipant.user.firstName} ${otherParticipant.user.lastName}`;
+
+        const profileImage = otherParticipant.jobSeeker
+          ? otherParticipant.jobSeeker.user.profileImage
+          : otherParticipant.user.profileImage;
+
+        return {
+          id: chat.id,
+          participantName,
+          profileImage,
+          lastMessage: chat.messages[0]?.messageContent || null,
+          lastMessageTime: chat.lastMessageAt,
+          offer: chat.offer || null,
+          offerStatus: chat.offerStatus || "none",
+        };
+      })
+      .filter((chat) => chat !== null); // Remove invalid chats
+
+    console.log(
+      "🔍 Transformed Chats:",
+      JSON.stringify(transformedChats, null, 2)
+    );
 
     res.json(transformedChats);
   } catch (error) {
@@ -223,11 +234,11 @@ export const sendMessage = async (req, res) => {
   try {
     const { chatId, messageContent } = req.body;
     const userId = req.user.id; // Authenticated user ID (Client OR Job Seeker's User ID)
-    
+
     // 🔍 Check if the sender is a Job Seeker
     const jobSeeker = await prisma.jobSeeker.findUnique({
       where: { userId },
-      select: { id: true }
+      select: { id: true },
     });
 
     const senderType = jobSeeker ? "jobSeeker" : "client";
@@ -238,7 +249,7 @@ export const sendMessage = async (req, res) => {
     // 🔍 Check if the chat exists
     const chat = await prisma.chat.findUnique({
       where: { id: chatId },
-      include: { participants: true }
+      include: { participants: true },
     });
 
     if (!chat) {
@@ -246,9 +257,13 @@ export const sendMessage = async (req, res) => {
     }
 
     // 🔍 Find the sender as a participant
-    const sender = chat.participants.find(p => p.userId === actualSenderId || p.jobSeekerId === actualSenderId);
+    const sender = chat.participants.find(
+      (p) => p.userId === actualSenderId || p.jobSeekerId === actualSenderId
+    );
     if (!sender) {
-      return res.status(403).json({ message: "You are not a participant in this chat" });
+      return res
+        .status(403)
+        .json({ message: "You are not a participant in this chat" });
     }
 
     // ✅ Store the correct senderId in the message
@@ -258,16 +273,18 @@ export const sendMessage = async (req, res) => {
         senderId: actualSenderId, // 🔥 Now supports both Clients and Job Seekers
         messageContent,
         sentAt: new Date(),
-      }
+      },
     });
 
     // ✅ Update chat's `lastMessageAt`
     await prisma.chat.update({
       where: { id: chatId },
-      data: { lastMessageAt: new Date() }
+      data: { lastMessageAt: new Date() },
     });
 
-    console.log(`✅ Message Sent! Sender ID: ${actualSenderId}, Content: ${messageContent}`);
+    console.log(
+      `✅ Message Sent! Sender ID: ${actualSenderId}, Content: ${messageContent}`
+    );
 
     return res.status(201).json(newMessage);
   } catch (error) {
@@ -275,8 +292,6 @@ export const sendMessage = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
-
 
 export const getMessages = async (req, res) => {
   try {
@@ -288,10 +303,10 @@ export const getMessages = async (req, res) => {
         messages: {
           orderBy: { sentAt: "asc" },
           include: {
-            readBy: true // ✅ Include read status
-          }
-        }
-      }
+            readBy: true, // ✅ Include read status
+          },
+        },
+      },
     });
 
     if (!chat) {
@@ -305,9 +320,8 @@ export const getMessages = async (req, res) => {
   }
 };
 
-
 // GET /api/chats/:chatId/status
-export const getStatus=  async (req, res) => {
+export const getStatus = async (req, res) => {
   try {
     const { chatId } = req.params;
     const userId = req.user.id; // From JWT middleware
@@ -316,11 +330,8 @@ export const getStatus=  async (req, res) => {
     const participant = await prisma.participant.findFirst({
       where: {
         chatId,
-        OR: [
-          { userId },
-          { jobSeeker: { userId } }
-        ]
-      }
+        OR: [{ userId }, { jobSeeker: { userId } }],
+      },
     });
 
     if (!participant) {
@@ -329,7 +340,7 @@ export const getStatus=  async (req, res) => {
 
     const chat = await prisma.chat.findUnique({
       where: { id: chatId },
-      select: { chatStatus: true }
+      select: { chatStatus: true },
     });
 
     if (!chat) {
@@ -353,9 +364,9 @@ export const chatApprove = async (req, res) => {
     const participant = await prisma.participant.findFirst({
       where: {
         chatId,
-        userId // Only clients have userId (job seekers have jobSeekerId)
+        userId, // Only clients have userId (job seekers have jobSeekerId)
       },
-      include: { user: true }
+      include: { user: true },
     });
 
     if (!participant) {
@@ -364,16 +375,16 @@ export const chatApprove = async (req, res) => {
 
     // Fetch chat and job title
     const chat = await prisma.chat.findUnique({
-      where: { id: chatId }
+      where: { id: chatId },
     });
 
-    let jobTitle = '';
+    let jobTitle = "";
     if (chat && chat.jobId) {
       const jobRequest = await prisma.jobRequest.findUnique({
         where: { id: chat.jobId },
-        select: { jobTitle: true }
+        select: { jobTitle: true },
       });
-      jobTitle = jobRequest?.jobTitle || '';
+      jobTitle = jobRequest?.jobTitle || "";
     }
 
     const updatedChat = await prisma.chat.update({
@@ -383,15 +394,17 @@ export const chatApprove = async (req, res) => {
         participants: {
           include: {
             jobSeeker: {
-              include: { user: true }
-            }
-          }
-        }
-      }
+              include: { user: true },
+            },
+          },
+        },
+      },
     });
 
     // Find the jobSeeker participant
-    const jobSeekerParticipant = updatedChat.participants.find(p => p.jobSeeker && p.jobSeeker.user);
+    const jobSeekerParticipant = updatedChat.participants.find(
+      (p) => p.jobSeeker && p.jobSeeker.user
+    );
     if (jobSeekerParticipant) {
       await prisma.notification.create({
         data: {
@@ -408,13 +421,12 @@ export const chatApprove = async (req, res) => {
     }
 
     // Notify all participants via socket.io
-    const io = req.app.get('socketio');
-    io.to(chatId).emit('chat_approved', { 
+    const io = req.app.get("socketio");
+    io.to(chatId).emit("chat_approved", {
       chatId,
-      approvedBy: participant.user.name 
+      approvedBy: participant.user.name,
     });
-    io.to(chatId).emit("chat_approved", { status: "approved" }); 
-   
+    io.to(chatId).emit("chat_approved", { status: "approved" });
   } catch (error) {
     console.error(error);
   }
@@ -431,8 +443,8 @@ export const chatReject = async (req, res) => {
     const participant = await prisma.participant.findFirst({
       where: {
         chatId,
-        userId
-      }
+        userId,
+      },
     });
 
     if (!participant) {
@@ -441,30 +453,32 @@ export const chatReject = async (req, res) => {
 
     // Fetch chat and job title
     const chat = await prisma.chat.findUnique({
-      where: { id: chatId }
+      where: { id: chatId },
     });
 
-    let jobTitle = '';
+    let jobTitle = "";
     if (chat && chat.jobId) {
       const jobRequest = await prisma.jobRequest.findUnique({
         where: { id: chat.jobId },
-        select: { jobTitle: true }
+        select: { jobTitle: true },
       });
-      jobTitle = jobRequest?.jobTitle || '';
+      jobTitle = jobRequest?.jobTitle || "";
     }
 
     const updatedChat = await prisma.chat.update({
       where: { id: chatId },
-      data: { 
-        chatStatus: "rejected"
+      data: {
+        chatStatus: "rejected",
       },
       include: {
-        participants: true
-      }
+        participants: true,
+      },
     });
 
     // Find the jobSeeker participant
-    const jobSeekerParticipant = updatedChat.participants.find(p => p.jobSeekerId);
+    const jobSeekerParticipant = updatedChat.participants.find(
+      (p) => p.jobSeekerId
+    );
     if (jobSeekerParticipant) {
       await prisma.notification.create({
         data: {
@@ -481,24 +495,21 @@ export const chatReject = async (req, res) => {
     }
 
     // Notify via socket.io
-    const io = req.app.get('socketio');
-    io.to(chatId).emit('chat_rejected', { 
+    const io = req.app.get("socketio");
+    io.to(chatId).emit("chat_rejected", {
       chatId,
-      rejectedBy: userId
+      rejectedBy: userId,
     });
-    io.to(chatId).emit("chat_rejected", { status: "rejected" }); 
-
-    
+    io.to(chatId).emit("chat_rejected", { status: "rejected" });
   } catch (error) {
     console.error(error);
-
   }
   res.json({ message: "Chat rejected" });
 };
 
 export const getReadStatus = async (req, res) => {
   const { messageId } = req.params;
-  const { userId } = req.query; 
+  const { userId } = req.query;
   try {
     const readStatus = await prisma.readStatus.findFirst({
       where: {
@@ -506,22 +517,22 @@ export const getReadStatus = async (req, res) => {
         userId: userId, // Check for a specific user
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
     res.status(200).json({
-      status: readStatus ? readStatus.status : 'Not Seen',
+      status: readStatus ? readStatus.status : "Not Seen",
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch read status' });
+    res.status(500).json({ error: "Failed to fetch read status" });
   }
 };
 
 export const getJobSeekerTags = async (req, res) => {
   try {
     const jobSeekerId = req.params.id; // Adjust based on your auth setup
-    console.log("THe id is",jobSeekerId);
+    console.log("THe id is", jobSeekerId);
 
     const jobSeeker = await prisma.jobSeeker.findUnique({
       where: { userId: jobSeekerId },
@@ -544,7 +555,7 @@ export const getJobSeekerTags = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
-    
+
     // Get the job seeker with all related data
     const jobSeeker = await prisma.jobSeeker.findUnique({
       where: { userId },
@@ -576,15 +587,13 @@ export const getUserProfile = async (req, res) => {
         },
         jobRequest: {
           where: {
-            AND: [
-              { jobStatus: 'verified' },
-            ]
+            AND: [{ jobStatus: "verified" }],
           },
-          select: { 
+          select: {
             completedAt: true,
-            verifiedAt: true
-          }
-        }
+            verifiedAt: true,
+          },
+        },
       },
     });
 
@@ -597,8 +606,8 @@ export const getUserProfile = async (req, res) => {
       where: {
         jobRequest: {
           jobSeekerId: userId,
-          jobStatus: 'verified'
-        }
+          jobStatus: "verified",
+        },
       },
       select: {
         id: true,
@@ -607,59 +616,71 @@ export const getUserProfile = async (req, res) => {
         createdAt: true,
         jobRequest: {
           select: {
-            verifiedAt: true
-          }
-        }
-      }
+            verifiedAt: true,
+          },
+        },
+      },
     });
 
     // Calculate average rating and completed jobs
     const completedJobs = jobSeeker.jobRequest.length;
-    const totalRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
+    const totalRating = reviews.reduce(
+      (sum, review) => sum + (review.rating || 0),
+      0
+    );
     const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
 
     // Transform achievements to match the interface
-    const achievements = jobSeeker.achievement.map(achievement => ({
+    const achievements = jobSeeker.achievement.map((achievement) => ({
       id: achievement.id,
       title: achievement.achievementName,
       description: `Complete ${achievement.jobRequired} jobs`,
       icon: achievement.achievementIcon,
-      color: '#4CAF50' // Default color, can be customized
+      color: "#4CAF50", // Default color, can be customized
     }));
 
     // Transform feedbacks
     const feedbacks = reviews
-      .filter(review => review.feedback)
-      .map(review => ({
+      .filter((review) => review.feedback)
+      .map((review) => ({
         id: review.id,
         rating: review.rating || 0,
         comment: review.feedback,
         date: (review.jobRequest?.verifiedAt || review.createdAt).toISOString(),
-        anonymousName: 'Anonymous Client'
+        anonymousName: "Anonymous Client",
       }));
 
     // Calculate years of experience (assuming it's based on first job completion)
-    const firstJobDate = jobSeeker.jobRequest.length > 0 
-      ? new Date(Math.min(...jobSeeker.jobRequest.map(job => job.verifiedAt)))
-      : new Date();
-    const yearsExperience = Math.floor((new Date() - firstJobDate) / (1000 * 60 * 60 * 24 * 365));
+    const firstJobDate =
+      jobSeeker.jobRequest.length > 0
+        ? new Date(
+            Math.min(...jobSeeker.jobRequest.map((job) => job.verifiedAt))
+          )
+        : new Date();
+    const yearsExperience = Math.floor(
+      (new Date() - firstJobDate) / (1000 * 60 * 60 * 24 * 365)
+    );
 
     const response = {
       name: `${jobSeeker.user.firstName}  ${jobSeeker.user.middleName} ${jobSeeker.user.lastName}`,
-      profileImage: jobSeeker.user.profileImage || '',
-      address: `${jobSeeker.user.houseNumber || ''} ${jobSeeker.user.street}, ${jobSeeker.user.barangay}`,
+      profileImage: jobSeeker.user.profileImage || "",
+      address: `${jobSeeker.user.houseNumber || ""} ${jobSeeker.user.street}, ${
+        jobSeeker.user.barangay
+      }`,
       rating: averageRating,
       completedJobs,
       yearsExperience,
       skills: [], // We'll need to fetch job tags separately or modify the schema
       achievements,
       email: jobSeeker.user.emailAddress,
-      phoneNumber: '', // Not currently stored in the schema
+      phoneNumber: "", // Not currently stored in the schema
       gender: jobSeeker.user.gender,
       birthday: jobSeeker.user.birthday.toISOString(),
       feedbacks,
       jobsDone: jobSeeker.user.jobsDone || 0,
-      joinedAt: jobSeeker.user.joinedAt ? jobSeeker.user.joinedAt.toISOString() : null,
+      joinedAt: jobSeeker.user.joinedAt
+        ? jobSeeker.user.joinedAt.toISOString()
+        : null,
     };
 
     return res.status(200).json(response);
@@ -676,38 +697,39 @@ export const getReviews = async (req, res) => {
     // Get all reviews for this job seeker (by reviewedId only)
     const reviews = await prisma.review.findMany({
       where: {
-        reviewedId: userId
+        reviewedId: userId,
       },
       select: {
         id: true,
         rating: true,
         feedback: true,
         createdAt: true,
-        reviewer: {  // Add this to get reviewer information
+        reviewer: {
+          // Add this to get reviewer information
           select: {
             firstName: true,
-            lastName: true
-          }
+            lastName: true,
+          },
         },
         jobRequest: {
           select: {
             jobTitle: true,
-            verifiedAt: true
-          }
-        }
-      }
+            verifiedAt: true,
+          },
+        },
+      },
     });
 
     // Transform the reviews into feedback format
     const feedbacks = reviews
-      .filter(review => review.feedback)
-      .map(review => ({
+      .filter((review) => review.feedback)
+      .map((review) => ({
         id: review.id,
         rating: review.rating || 0,
         comment: review.feedback,
         date: (review.jobRequest?.verifiedAt || review.createdAt).toISOString(),
-        jobTitle: review.jobRequest?.jobTitle || '',
-        anonymousName: `${review.reviewer.firstName} ${review.reviewer.lastName}`  // Use actual name
+        jobTitle: review.jobRequest?.jobTitle || "",
+        anonymousName: `${review.reviewer.firstName} ${review.reviewer.lastName}`, // Use actual name
       }));
 
     return res.status(200).json(feedbacks);
@@ -746,11 +768,13 @@ export const getClientProfile = async (req, res) => {
     }
 
     const response = {
-      name: `${user.firstName} ${user.middleName || ''} ${user.lastName}`,
-      profileImage: user.profileImage || '',
-      address: `${user.houseNumber || ''} ${user.street || ''}, ${user.barangay || ''}`,
+      name: `${user.firstName} ${user.middleName || ""} ${user.lastName}`,
+      profileImage: user.profileImage || "",
+      address: `${user.houseNumber || ""} ${user.street || ""}, ${
+        user.barangay || ""
+      }`,
       email: user.emailAddress,
-      phoneNumber: '', // Not currently stored in the schema
+      phoneNumber: "", // Not currently stored in the schema
       gender: user.gender,
       birthday: user.birthday ? user.birthday.toISOString() : null,
       jobsDone: user.jobsDone || 0,
@@ -763,7 +787,6 @@ export const getClientProfile = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 export const blockUser = async (req, res) => {
   try {
@@ -883,8 +906,8 @@ export const getJobRequestBudget = async (req, res) => {
         id: true,
         budget: true,
         jobTitle: true,
-        jobStatus: true
-      }
+        jobStatus: true,
+      },
     });
 
     if (!jobRequest) {
@@ -895,7 +918,7 @@ export const getJobRequestBudget = async (req, res) => {
       jobId: jobRequest.id,
       budget: jobRequest.budget,
       jobTitle: jobRequest.jobTitle,
-      jobStatus: jobRequest.jobStatus
+      jobStatus: jobRequest.jobStatus,
     });
   } catch (error) {
     console.error("Error fetching job request budget:", error);
@@ -910,16 +933,31 @@ export const getUsersWhoBlockedMe = async (req, res) => {
     const blockedByUsers = await prisma.blockedUser.findMany({
       where: { blockedId: userId },
       select: {
-        blockerId: true
-      }
+        blockerId: true,
+      },
     });
 
     // Extract just the blocker IDs from the results
-    const blockerIds = blockedByUsers.map(block => block.blockerId);
+    const blockerIds = blockedByUsers.map((block) => block.blockerId);
 
     res.status(200).json(blockerIds);
   } catch (error) {
     console.error("Error fetching users who blocked me:", error);
     res.status(500).json({ message: "Internal server error" });
   }
+};
+
+export const reportValidation = async (req, res) => {
+  console.log(req.body);
+  const { reason, reportedObjectId, reporter } = req.body;
+
+  const reportValidation = await prisma.reportValidation.create({
+    data: {
+      reason,
+      reportedObjectId,
+      reporter,
+    },
+  });
+
+  res.status(200).json({ message: "Report validated successfully" });
 };

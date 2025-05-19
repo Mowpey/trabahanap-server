@@ -3,10 +3,12 @@ import {
   getUserProfile,
   updateUserProfile,
   updateJobTags,
+  getJobSeekerProfileByUserId,
 } from "../controllers/profile.controller.js";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
+import authenticateToken from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -36,5 +38,8 @@ router.patch(
 );
 
 router.patch("/user/profile/edit/job-tags/:userId", updateJobTags);
+
+// New route for fetching job seeker profile details by User ID
+router.get("/user/profile/:jobSeekerId/details", getJobSeekerProfileByUserId);
 
 export default router;

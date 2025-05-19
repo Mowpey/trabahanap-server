@@ -316,42 +316,49 @@ export const verifyApplicant = async (req, res) => {
       // If the user is a job-seeker, we need additional processing
       if (req.body.userType === "job-seeker") {
         // Use default values for required job-seeker fields if not provided
-        const availability = req.body.availability !== undefined ? req.body.availability : true;
+        const availability =
+          req.body.availability !== undefined ? req.body.availability : true;
         const hourlyRate = req.body.hourlyRate || "0";
         const credentials = req.body.credentials || null;
-        
+
         // Parse job tags - ensure we have a valid array
         let jobTags = [];
         if (req.body.jobTags) {
-          if (typeof req.body.jobTags === 'string') {
+          if (typeof req.body.jobTags === "string") {
             try {
               jobTags = JSON.parse(req.body.jobTags);
             } catch (e) {
               // If parsing fails, try to split by comma
-              jobTags = req.body.jobTags.split(',').map(tag => tag.trim());
+              jobTags = req.body.jobTags.split(",").map((tag) => tag.trim());
             }
           } else if (Array.isArray(req.body.jobTags)) {
             jobTags = req.body.jobTags;
           }
         }
-        
+
         // Create ApplicantJobSeeker record with job-seeker specific data
-        const applicantJobSeeker = await prismaClient.applicantJobSeeker.create({
-          data: {
-            applicant: {
-              connect: { id: newApplicant.id }
+        const applicantJobSeeker = await prismaClient.applicantJobSeeker.create(
+          {
+            data: {
+              applicant: {
+                connect: { id: newApplicant.id },
+              },
+              // We don't connect to jobSeeker yet as it doesn't exist
+              // It will be created when the applicant is verified
+              joinedAt: new Date(),
+              availability: availability,
+              hourlyRate: hourlyRate,
+              credentials: credentials,
+              jobTags:
+                Array.isArray(jobTags) && jobTags.length > 0 ? jobTags : [],
             },
-            // We don't connect to jobSeeker yet as it doesn't exist
-            // It will be created when the applicant is verified
-            joinedAt: new Date(),
-            availability: availability,
-            hourlyRate: hourlyRate,
-            credentials: credentials,
-            jobTags: Array.isArray(jobTags) && jobTags.length > 0 ? jobTags : [],
-          },
-        });
-        
-        console.log(`Job-seeker details stored with applicant: availability=${availability}, hourlyRate=${hourlyRate}, jobTags=`, jobTags);
+          }
+        );
+
+        console.log(
+          `Job-seeker details stored with applicant: availability=${availability}, hourlyRate=${hourlyRate}, jobTags=`,
+          jobTags
+        );
 
         console.log(
           `Job-seeker applicant created successfully: ${newApplicant.id}`

@@ -541,7 +541,7 @@ export const searchJobSeekers = async (req, res) => {
       userType: "job-seeker",
     };
 
-    // Fetch ALL job seekers first
+    // Fetch ALL job seekers
     let allMatchingJobSeekers = await prisma.user.findMany({
       where: whereClause,
       include: {
@@ -585,12 +585,51 @@ export const searchJobSeekers = async (req, res) => {
       });
     }
 
-    // Manual Pagination on the filtered results
-    const totalJobSeekers = filteredJobSeekers.length;
-    const paginatedJobSeekers = filteredJobSeekers.slice(
+    // Format results to match the frontend expectations
+    const formattedJobSeekers = filteredJobSeekers.map((user) => {
+      // Since we don't have access to reviews directly, we'll set a default rating for now
+      // In a real implementation, you'd want to query reviews separately if needed
+      let rating = null;
+
+      // Get primary category (first tag) if available
+      const category =
+        user.jobSeeker?.jobTags?.length > 0
+          ? user.jobSeeker.jobTags[0]
+          : "General";
+
+      return {
+        id: user.id,
+        firstName: user.firstName || "",
+        middleName: user.middleName || "",
+        lastName: user.lastName || "",
+        profileImage: user.profileImage,
+        category: category,
+        rating: rating,
+      };
+    });
+
+    // Manual Pagination on the formatted results
+    const totalJobSeekers = formattedJobSeekers.length;
+    const paginatedJobSeekers = formattedJobSeekers.slice(
       (pageNum - 1) * limitNum,
       pageNum * limitNum
     );
+
+    // Get top categories for filters (count occurrences of each tag)
+    const tagCounts = {};
+    allMatchingJobSeekers.forEach((user) => {
+      if (user.jobSeeker?.jobTags) {
+        user.jobSeeker.jobTags.forEach((tag) => {
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        });
+      }
+    });
+
+    // Convert to array, sort by count (descending), and limit to top 10
+    const topCategories = Object.entries(tagCounts)
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
 
     res.json({
       data: paginatedJobSeekers,
@@ -600,6 +639,7 @@ export const searchJobSeekers = async (req, res) => {
         total: totalJobSeekers,
         totalPages: Math.ceil(totalJobSeekers / limitNum),
       },
+      categories: topCategories,
     });
   } catch (error) {
     console.error("Error searching job seekers:", error);
@@ -651,7 +691,7 @@ export const markNotificationsAsRead = async (req, res) => {
 
     // Build the where clause based on user type
     let whereClause = { isRead: false }; // Only update unread notifications
-    
+
     if (userType === "client") {
       whereClause.clientId = userId;
     } else if (userType === "job-seeker") {
@@ -660,7 +700,7 @@ export const markNotificationsAsRead = async (req, res) => {
         where: { userId },
         select: { id: true },
       });
-      
+
       if (jobSeeker) {
         whereClause.jobSeekerId = jobSeeker.id;
       } else {
@@ -673,12 +713,12 @@ export const markNotificationsAsRead = async (req, res) => {
     // Update all matching notifications to be marked as read
     const result = await prisma.notification.updateMany({
       where: whereClause,
-      data: { isRead: true }
+      data: { isRead: true },
     });
 
-    res.json({ 
+    res.json({
       message: "Notifications marked as read successfully",
-      count: result.count 
+      count: result.count,
     });
   } catch (error) {
     console.error("Error marking notifications as read:", error);
@@ -693,7 +733,7 @@ export const hasUnreadNotifications = async (req, res) => {
 
     // Build the where clause based on user type
     let whereClause = { isRead: false }; // Add condition for unread notifications
-    
+
     if (userType === "client") {
       whereClause.clientId = userId;
     } else if (userType === "job-seeker") {
@@ -702,7 +742,7 @@ export const hasUnreadNotifications = async (req, res) => {
         where: { userId },
         select: { id: true },
       });
-      
+
       if (jobSeeker) {
         whereClause.jobSeekerId = jobSeeker.id; // Using jobSeeker.id, not userId
       } else {
@@ -714,7 +754,7 @@ export const hasUnreadNotifications = async (req, res) => {
 
     // Count unread notifications - more efficient than fetching all records
     const count = await prisma.notification.count({
-      where: whereClause
+      where: whereClause,
     });
 
     // Return true if there's at least one unread notification, false otherwise
