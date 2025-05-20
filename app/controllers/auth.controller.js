@@ -93,14 +93,14 @@ export const signUp = async (req, res) => {
                 achievementIcon: "./assets/achievements/starter.png",
               },
             },
-            // milestone: {
-            //   create: {
-            //     milestoneTitle: "Start of the Journey",
-            //     milestoneDescription: "Successfully created an account",
-            //     jobsCompleted: 0,
-            //     experienceLevel: "1",
-            //   },
-            // },
+            milestone: {
+              create: {
+                milestoneTitle: "Start of the Journey",
+                milestoneDescription: "Successfully created an account",
+                jobsCompleted: 0,
+                experienceLevel: "1",
+              },
+            },
           },
         },
       },
@@ -275,6 +275,7 @@ export const verifyOtpOnly = async (req, res) => {
 export const verifyApplicant = async (req, res) => {
   try {
     // Create applicant record with basic data
+    console.log("received", req);
     const applicantData = {
       firstName: req.body.firstName,
       middleName: req.body.middleName,

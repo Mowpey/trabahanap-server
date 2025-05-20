@@ -19,6 +19,7 @@ import {
   getJobRequestById,
   markNotificationsAsRead,
   hasUnreadNotifications,
+  getClientCompletedJobs,
 } from "../controllers/app.controller.js";
 import multer from "multer";
 import {
@@ -93,6 +94,7 @@ router.post("/home/job_request", formData.none(), jobRequest);
 router.post("/client-home/add-jobs", jrp.array("jobImage", 3), jobRequest);
 
 router.get("/client-home/job-listings", getClientListings);
+router.get("/client/completed-jobs/:client", getClientCompletedJobs);
 router.get("/client-home/job-listings/:id", getSingleJobListing);
 router.delete("/client-home/delete-listing", deleteClientListings);
 router.patch(
