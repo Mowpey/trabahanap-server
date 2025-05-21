@@ -175,3 +175,77 @@ export const updateJobTags = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const getJobSeekerProfileByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params; // This is the User.id
+    console.log(
+      `[getJobSeekerProfileByUserId] Received request for User ID: ${userId}`
+    ); // Added log
+
+    const jobSeeker = await prisma.jobSeeker.findUnique({
+      where: { userId: userId }, // Find JobSeeker by the unique userId (foreign key to User table)
+      include: {
+        user: {
+          // Include related User data
+          select: {
+            id: true,
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            suffixName: true,
+            profileImage: true,
+            emailAddress: true,
+            barangay: true,
+            street: true,
+            houseNumber: true,
+            gender: true,
+            birthday: true,
+            bio: true,
+            userType: true,
+            jobsDone: true,
+            joinedAt: true,
+            verificationStatus: true,
+          },
+        },
+        // You can include other JobSeeker specific relations here if needed
+        // e.g., achievement: true, jobTags: true (jobTags is an enum array, handled differently)
+      },
+    });
+
+    console.log(
+      `[getJobSeekerProfileByUserId] Prisma findUnique result for userId ${userId}:`,
+      jobSeeker
+    ); // Added log
+
+    if (!jobSeeker) {
+      console.log(
+        `[getJobSeekerProfileByUserId] No JobSeeker found for User ID: ${userId}. Returning 404.`
+      ); // Added log
+      return res.status(404).json({ message: "Job seeker profile not found" });
+    }
+
+    // Combine user data and jobSeeker specific data
+    // The 'user' object is already nested under jobSeeker from the include
+    // We might want to flatten it or structure it as the frontend expects.
+    // For now, let's return a structure that clearly separates JobSeeker fields and User fields.
+    const responsePayload = {
+      jobSeekerId: jobSeeker.id, // This is the JobSeeker's own _id
+      availability: jobSeeker.availability,
+      credentials: jobSeeker.credentials,
+      hourlyRate: jobSeeker.hourlyRate,
+      rate: jobSeeker.rate,
+      jobTags: jobSeeker.jobTags, // This is an array of enum JobTag
+      // ... other JobSeeker specific fields
+      user: jobSeeker.user, // Contains all the selected user fields
+    };
+
+    return res.status(200).json(responsePayload);
+  } catch (error) {
+    console.error(
+      "[getJobSeekerProfileByUserId] Error fetching job seeker profile:",
+      error
+    ); // Enhanced log
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};

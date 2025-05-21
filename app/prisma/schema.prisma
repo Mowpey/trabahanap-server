@@ -362,3 +362,14 @@ model ApplicantJobSeeker {
 
   @@map("applicant_jobseeker")
 }
+
+model ReportValidation {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  reportedObjectId String @db.ObjectId
+  reporter String @db.ObjectId
+  reason String
+  status String @default("pending")
+  dateReported DateTime @default(now())
+
+  @@map("report_validation")
+}
