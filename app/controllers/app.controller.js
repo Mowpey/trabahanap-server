@@ -103,6 +103,73 @@ export const getClientListings = async (req, res) => {
   res.json(response);
 };
 
+export const getClientCompletedJobs = async (req, res) => {
+  try {
+    const clientId = req.params.client;
+    
+    if (!clientId) {
+      return res.status(400).json({ error: "Client ID is required" });
+    }
+
+    const completedJobs = await prisma.jobRequest.findMany({
+      where: {
+        clientId: clientId,
+        jobStatus: {
+          in: ["completed", "reviewed"]
+        }
+      },
+      include: {
+        reviews: {
+          include: {
+            reviewer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileImage: true
+              }
+            }
+          }
+        },
+        jobSeeker: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileImage: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        completedAt: 'desc'
+      }
+    });
+
+    // Transform the response to include average rating and format jobSeeker data
+    const formattedJobs = completedJobs.map(job => ({
+      ...job,
+      jobSeeker: job.jobSeeker ? {
+        id: job.jobSeeker.id,
+        firstName: job.jobSeeker.user.firstName,
+        lastName: job.jobSeeker.user.lastName,
+        profileImage: job.jobSeeker.user.profileImage
+      } : null,
+      averageRating: job.reviews.length > 0 
+        ? job.reviews.reduce((acc, review) => acc + review.rating, 0) / job.reviews.length 
+        : 0
+    }));
+    console.log(formattedJobs);
+    res.json(formattedJobs);
+  } catch (error) {
+    console.error("Error fetching completed jobs:", error);
+    res.status(500).json({ error: "Failed to fetch completed jobs" });
+  }
+};
+
 export const getSingleJobListing = async (req, res) => {
   const response = await prisma.jobRequest.findFirst({
     where: { id: req.query.jobID },
@@ -217,7 +284,7 @@ export const getMyJobs = async (req, res) => {
       where: {
         jobSeekerId: jobSeekerId,
         jobStatus: {
-          in: ["accepted", "pending", "completed"], // Only show accepted/pending jobs
+          in: ["accepted", "pending", "completed", "reviewed"], // Only show accepted/pending jobs
         },
       },
       include: {
@@ -226,6 +293,20 @@ export const getMyJobs = async (req, res) => {
             id: true,
             firstName: true,
             lastName: true,
+            profileImage: true,
+          },
+        },
+        // Include reviews for completed and reviewed jobs
+        reviews: {
+          include: {
+            reviewer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileImage: true,
+              },
+            },
           },
         },
       },
@@ -233,8 +314,8 @@ export const getMyJobs = async (req, res) => {
         datePosted: "desc",
       },
     });
-
     res.json(myJobs);
+
   } catch (error) {
     console.error("Error fetching job seeker's jobs:", error);
     res.status(500).json({ error: "Server error" });

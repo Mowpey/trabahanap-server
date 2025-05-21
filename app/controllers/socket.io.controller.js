@@ -594,7 +594,12 @@ export function initializeSocketIO(httpServer) {
 
         const updatedJob = await prisma.jobRequest.update({
           where: { id: jobRequestId },
-          data: { offer: updatedChat.offer,jobStatus: "pending",jobSeekerId:jobseekerid},
+          data: { 
+            offer: updatedChat.offer,
+            jobStatus: "pending",
+            jobSeekerId: jobseekerid,
+            acceptedAt: new Date()
+          },
         });
         
     
@@ -849,6 +854,73 @@ export function initializeSocketIO(httpServer) {
         break;
       }
     }
+
+    socket.on('upload_file', async ({ senderId, chatId, file, fileName, fileType }) => {
+      try {
+        console.log('Received file upload request:', {
+          fileName,
+          fileType,
+          fileDataLength: file ? file.length : 0
+        });
+    
+        let base64Data = file;
+        
+        // If it's already in data URI format, extract the base64 part
+        if (file.startsWith('data:')) {
+          const matches = file.match(/^data:(.+);base64,(.+)$/);
+          if (!matches || matches.length !== 3) {
+            throw new Error('Invalid file format');
+          }
+          base64Data = matches[2];
+        }
+    
+        // Get file extension from original filename or mime type
+        const ext = fileName.split('.').pop() || (fileType ? fileType.split('/')[1] : 'txt');
+        const filename = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const folderPath = path.join(process.cwd(), 'assets/messages_files', chatId);
+        const filePath = path.join(folderPath, filename);
+    
+        // Create directory if it doesn't exist
+        fs.mkdirSync(folderPath, { recursive: true });
+        fs.writeFileSync(filePath, base64Data, 'base64');
+    
+        const relativePath = `assets/messages_files/${chatId}/${filename}`;
+    
+        const newMessage = await prisma.message.create({
+          data: {
+            chatId,
+            senderId,
+            messageContent: relativePath,
+            messageType: 'file',
+            // fileName: fileName,
+            // fileType: fileType,
+          },
+        });
+    
+        // Emit success response to the sender
+        socket.emit('file_upload_response', {
+          success: true,
+          message: 'File uploaded successfully',
+          fileData: {
+            id: newMessage.id,
+            fileName: fileName,
+            fileType: fileType,
+            filePath: relativePath
+          }
+        });
+    
+        // Broadcast the new message to all chat participants
+        io.to(chatId).emit('receive_message', newMessage);
+    
+      } catch (error) {
+        console.error('Socket file upload error:', error);
+        // Emit error response to the sender
+        socket.emit('file_upload_response', {
+          success: false,
+          error: error.message || 'Failed to upload file'
+        });
+      }
+    });
   });
 
   

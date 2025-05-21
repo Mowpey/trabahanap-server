@@ -711,13 +711,15 @@ export const getReviews = async (req, res) => {
             lastName: true,
           },
         },
-        jobRequest: {
-          select: {
-            jobTitle: true,
-            verifiedAt: true,
-          },
-        },
-      },
+
+        // jobRequest: {
+        //   select: {
+        //     jobTitle: true,
+        //     verifiedAt: true
+        //   }
+        // }
+      }
+
     });
 
     // Transform the reviews into feedback format
