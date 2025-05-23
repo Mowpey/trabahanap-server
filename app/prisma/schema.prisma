@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 
@@ -43,6 +42,7 @@ model User {
   notification           Notification[]
   participants           Participant[]
   Review                 Review[]
+  commentLikes           CommentLike[]
 
   blockedUsers   BlockedUser[] @relation("Blocker")
   blockedByUsers BlockedUser[] @relation("Blocked")
@@ -212,12 +212,26 @@ model Comment {
   jobSeekerId String?    @db.ObjectId
   comment     String
   createdAt   DateTime
+  likeCount   Int        @default(0)
+  likes       CommentLike[]
 
   parentCommentId String?   @db.ObjectId
   parentComment   Comment?  @relation("Replies", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   replies         Comment[] @relation("Replies")
 
   @@map("comment")
+}
+
+model CommentLike {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  comment     Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId   String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String   @db.ObjectId
+  likedAt     DateTime @default(now())
+
+  @@unique([userId, commentId])
+  @@map("comment_like")
 }
 
 model Chat {

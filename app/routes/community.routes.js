@@ -10,7 +10,15 @@ import {
   userUnliked,
   userCommented,
   getComments,
+  deletePosting,
+  editPosting,
+  editComment,
+  deleteComment,
+  userLikedComment,
+  userUnlikedComment,
+  checkIfLikedComment,
 } from "../controllers/community.controller.js";
+import authenticateToken from "../middleware/auth.middleware.js";
 
 const storage = multer.diskStorage({
   destination: function (_req, _file, cb) {
@@ -45,5 +53,32 @@ router.post(
   userCommented
 );
 router.get("/community/posts/:postId/getComments", getComments);
+router.delete("/community/posts/:postId/delete", deletePosting);
+router.put(
+  "/community/posts/:postId/edit",
+  formData.single("postImage"),
+  editPosting
+);
+router.put("/community/posts/:postId/comments/:commentId/edit", editComment);
+router.delete(
+  "/community/posts/:postId/comments/:commentId/delete",
+  deleteComment
+);
+router.post(
+  "/community/posts/:postId/comments/:commentId/like",
+  authenticateToken,
+  userLikedComment
+);
+router.post(
+  "/community/posts/:postId/comments/:commentId/unlike",
+  authenticateToken,
+  userUnlikedComment
+);
+
+router.get(
+  "/community/posts/:postId/comments/:commentId/check-like",
+  authenticateToken,
+  checkIfLikedComment
+);
 
 export default router;
