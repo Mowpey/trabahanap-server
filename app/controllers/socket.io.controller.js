@@ -6,6 +6,9 @@ import path from 'path';
 import { Console } from 'console';
 const prisma = new PrismaClient();
 
+const onlineUsers = new Map(); // userId -> { socketId, lastSeen, userInfo }
+const activeCalls = new Map(); // chatId -> { callerId, calleeId, status }
+
 export function initializeSocketIO(httpServer) {
   const io = new Server(httpServer, {
     cors: {
@@ -776,85 +779,6 @@ export function initializeSocketIO(httpServer) {
         console.error('Socket upload error:', error);
       }
     });
-    
-    socket.on('delete-message', async ({ messageId, chatId, deletionType, isSender }) => {
-      try {
-        console.log(isSender);
-        // 1. Verify message exists
-        const message = await prisma.message.findUnique({
-          where: { id: messageId }
-        });
-        if (!message) throw new Error('Message not found');
-    
-        // 2. Prepare update data
-        const updateData = {};
-        if (deletionType === 'forEveryone') {
-          updateData.deletedBySender = 'yes';
-          updateData.deletedByReceiver = 'yes';
-        } else {
-          updateData[isSender ? 'deletedBySender' : 'deletedByReceiver'] = 'yes';
-        }
-    
-        // 3. Update message in database
-        await prisma.message.update({
-          where: { id: messageId },
-          data: updateData
-        });
-    
-        // 4. Broadcast to all chat participants
-
-        io.to(chatId).emit('message-deleted', {
-          messageId,
-          updates: updateData,
-          // newContent: 'This message was deleted'
-        });
-    
-      } catch (error) {
-        socket.emit('delete-error', error.message);
-      }
-    });
-
-    socket.on('delete_chat', async ({ chatId, userRole }) => {
-      try {
-        const userId = socket.user.id;
-    
-        const updateData =
-          userRole === 'job-seeker'
-            ? { deletedByJobSeeker: true }
-            : { deletedByClient: true };
-    
-        await prisma.participant.updateMany({
-          where: {
-            chatId,
-            ...(userRole === 'job-seeker' ? { jobSeekerId: userId } : { userId }),
-          },
-          data: updateData,
-        });
-    
-        socket.emit('chat_deleted_success', { chatId });
-      } catch (error) {
-        console.error('Error deleting chat:', error);
-        socket.emit('chat_deleted_error', { error: 'Failed to delete chat' });
-      }
-    });
-    
-
-    socket.on('register_user', (userId) => {
-      userSocketMap.set(userId, socket.id);
-      console.log(`User ${userId} registered`);
-    });
-    
-    
-    socket.on('disconnect', () => {
-      console.log('User disconnected');
-    });
-    for (const [userId, sockId] of userSocketMap.entries()) {
-      if (sockId === socket.id) {
-        userSocketMap.delete(userId);
-        break;
-      }
-    }
-
     socket.on('upload_file', async ({ senderId, chatId, file, fileName, fileType }) => {
       try {
         console.log('Received file upload request:', {
@@ -919,6 +843,407 @@ export function initializeSocketIO(httpServer) {
           success: false,
           error: error.message || 'Failed to upload file'
         });
+      }
+    });
+    socket.on('delete-message', async ({ messageId, chatId, deletionType, isSender }) => {
+      try {
+        console.log(isSender);
+        // 1. Verify message exists
+        const message = await prisma.message.findUnique({
+          where: { id: messageId }
+        });
+        if (!message) throw new Error('Message not found');
+    
+        // 2. Prepare update data
+        const updateData = {};
+        if (deletionType === 'forEveryone') {
+          updateData.deletedBySender = 'yes';
+          updateData.deletedByReceiver = 'yes';
+        } else {
+          updateData[isSender ? 'deletedBySender' : 'deletedByReceiver'] = 'yes';
+        }
+    
+        // 3. Update message in database
+        await prisma.message.update({
+          where: { id: messageId },
+          data: updateData
+        });
+    
+        // 4. Broadcast to all chat participants
+
+        io.to(chatId).emit('message-deleted', {
+          messageId,
+          updates: updateData,
+          // newContent: 'This message was deleted'
+        });
+    
+      } catch (error) {
+        socket.emit('delete-error', error.message);
+      }
+    });
+
+    socket.on('delete_chat', async ({ chatId, userRole }) => {
+      try {
+        const userId = socket.user.id;
+    
+        const updateData =
+          userRole === 'job-seeker'
+            ? { deletedByJobSeeker: true }
+            : { deletedByClient: true };
+    
+        await prisma.participant.updateMany({
+          where: {
+            chatId,
+            ...(userRole === 'job-seeker' ? { jobSeekerId: userId } : { userId }),
+          },
+          data: updateData,
+        });
+    
+        socket.emit('chat_deleted_success', { chatId });
+      } catch (error) {
+        console.error('Error deleting chat:', error);
+        socket.emit('chat_deleted_error', { error: 'Failed to delete chat' });
+      }
+    });
+    
+
+    socket.on('register_user', async (userId) => {
+      try {
+        // Get user info from database
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, firstName: true, lastName: true, profileImage: true }
+        });
+
+        if (user) {
+          // Store user info in online users map
+          onlineUsers.set(userId, {
+            socketId: socket.id,
+            userInfo: user
+          });
+          console.log(onlineUsers);
+
+          // Broadcast to all clients that this user is online
+          io.emit('user_online', {
+            userId,
+            userInfo: user
+          });
+
+          // Send current online users to the newly connected user
+          socket.emit('online_users', Array.from(onlineUsers.entries()).map(([id, data]) => ({
+            userId: id,
+            ...data.userInfo
+          })));
+        }
+      } catch (error) {
+        console.error('Error registering user:', error);
+      }
+    });
+    
+    
+    socket.on('disconnect', () => {
+      // Find and remove the user from online users
+      for (const [userId, data] of onlineUsers.entries()) {
+        if (data.socketId === socket.id) {
+          onlineUsers.delete(userId);
+          // Broadcast to all clients that this user is offline
+          io.emit('user_offline', { userId });
+          break;
+        }
+      }
+
+      // Clean up any active calls where this user was participating
+      for (const [chatId, call] of activeCalls.entries()) {
+        if (call.callerId === socket.user.id || call.calleeId === socket.user.id) {
+          activeCalls.delete(chatId);
+          // Notify other participant that call ended
+          const otherUserId = call.callerId === socket.user.id ? call.calleeId : call.callerId;
+          const otherSocketId = Array.from(onlineUsers.entries())
+            .find(([userId]) => userId === otherUserId)?.[1]?.socketId;
+          
+          if (otherSocketId) {
+            io.to(otherSocketId).emit('call_ended', {
+              chatId,
+              reason: 'participant_disconnected'
+            });
+          }
+        }
+      }
+    });
+
+    // Add new event to get online users
+    socket.on('get_online_users', () => {
+      const onlineUsersList = Array.from(onlineUsers.entries()).map(([id, data]) => ({
+        userId: id,
+        ...data.userInfo
+      }));
+      socket.emit('online_users', onlineUsersList);
+    });
+
+    // Handle call initiation
+    socket.on('initiate_call', async ({ chatId, callerId, calleeId }) => {
+      console.log('Call initiated:', { chatId, callerId, calleeId });
+      
+      try {
+        // Validate that both users are online
+        const callerSocket = Array.from(onlineUsers.entries())
+          .find(([userId]) => userId === callerId)?.[1]?.socketId;
+        const calleeSocket = Array.from(onlineUsers.entries())
+          .find(([userId]) => userId === calleeId)?.[1]?.socketId;
+
+        if (!calleeSocket) {
+          socket.emit('call_error', { message: 'Callee is offline' });
+          return;
+        }
+
+        // Store call information
+        activeCalls.set(chatId, {
+          callerId,
+          calleeId,
+          status: 'ringing',
+          startTime: new Date()
+        });
+
+        // Emit to callee
+        io.to(calleeSocket).emit('incoming_call', {
+          chatId,
+          callerId,
+          callerInfo: onlineUsers.get(callerId)?.userInfo
+        });
+
+        // Emit to caller that call is being signaled
+        socket.emit('call_initiated', {
+          chatId,
+          calleeId,
+          calleeInfo: onlineUsers.get(calleeId)?.userInfo
+        });
+
+      } catch (error) {
+        console.error('Error initiating call:', error);
+        socket.emit('call_error', { message: 'Failed to initiate call' });
+      }
+    });
+
+    // Handle call signaling
+    socket.on('signal_call', ({ chatId, signal, fromUserId, toUserId }) => {
+      try {
+        const call = activeCalls.get(chatId);
+        
+        if (!call) {
+          socket.emit('call_error', { message: 'Call not found' });
+          return;
+        }
+
+        // Verify the signal is from a valid participant
+        if (fromUserId !== call.callerId && fromUserId !== call.calleeId) {
+          socket.emit('call_error', { message: 'Unauthorized signal' });
+          return;
+        }
+
+        // Find recipient's socket
+        const recipientSocketId = Array.from(onlineUsers.entries())
+          .find(([userId]) => userId === toUserId)?.[1]?.socketId;
+
+        if (recipientSocketId) {
+          // Forward the signal to the other participant
+          io.to(recipientSocketId).emit('call_signal', {
+            chatId,
+            signal,
+            fromUserId
+          });
+        } else {
+          socket.emit('call_error', { message: 'Recipient is offline' });
+        }
+
+      } catch (error) {
+        console.error('Error signaling call:', error);
+        socket.emit('call_error', { message: 'Failed to signal call' });
+      }
+    });
+
+    // Handle call acceptance
+    socket.on('accept_call', async ({ chatId, callerId, calleeId }) => {
+      console.log('Call accepted:', { chatId, callerId, calleeId });
+      
+      try {
+        // Get the call from active calls
+        const call = activeCalls.get(chatId);
+        if (!call) {
+          socket.emit('call_error', { message: 'Call not found' });
+          return;
+        }
+
+        // Verify this is the correct callee
+        if (call.calleeId !== calleeId) {
+          socket.emit('call_error', { message: 'Unauthorized call acceptance' });
+          return;
+        }
+
+        // Update call status
+        activeCalls.set(chatId, {
+          ...call,
+          status: 'accepted',
+          acceptedAt: new Date()
+        });
+
+        // Find both sockets
+        const callerSocket = Array.from(onlineUsers.entries())
+          .find(([userId]) => userId === callerId)?.[1]?.socketId;
+        const calleeSocket = Array.from(onlineUsers.entries())
+          .find(([userId]) => userId === calleeId)?.[1]?.socketId;
+
+        if (!callerSocket || !calleeSocket) {
+          socket.emit('call_error', { message: 'One of the participants is offline' });
+          return;
+        }
+
+        // Notify both parties
+        io.to(callerSocket).emit('call_accepted', {
+          chatId,
+          calleeId,
+          calleeInfo: onlineUsers.get(calleeId)?.userInfo
+        });
+
+        io.to(calleeSocket).emit('call_accepted_confirmation', {
+          chatId,
+          callerId,
+          callerInfo: onlineUsers.get(callerId)?.userInfo
+        });
+
+      } catch (error) {
+        console.error('Error accepting call:', error);
+        socket.emit('call_error', { message: 'Failed to accept call' });
+      }
+    });
+
+    // Handle call rejection
+    socket.on('reject_call', async ({ chatId, callerId, calleeId, reason }) => {
+      console.log('Call rejected:', { chatId, callerId, calleeId, reason });
+      
+      try {
+        // Get the call from active calls
+        const call = activeCalls.get(chatId);
+        if (!call) {
+          socket.emit('call_error', { message: 'Call not found' });
+          return;
+        }
+
+        // Verify this is the correct callee
+        if (call.calleeId !== calleeId) {
+          socket.emit('call_error', { message: 'Unauthorized call rejection' });
+          return;
+        }
+
+        // Find both sockets
+        const callerSocket = Array.from(onlineUsers.entries())
+          .find(([userId]) => userId === callerId)?.[1]?.socketId;
+        const calleeSocket = Array.from(onlineUsers.entries())
+          .find(([userId]) => userId === calleeId)?.[1]?.socketId;
+
+        if (!callerSocket || !calleeSocket) {
+          socket.emit('call_error', { message: 'One of the participants is offline' });
+          return;
+        }
+
+        // Notify both parties
+        io.to(callerSocket).emit('call_rejected', {
+          chatId,
+          calleeId,
+          reason: reason || 'Call rejected',
+          calleeInfo: onlineUsers.get(calleeId)?.userInfo
+        });
+
+        io.to(calleeSocket).emit('call_rejected_confirmation', {
+          chatId,
+          callerId,
+          callerInfo: onlineUsers.get(callerId)?.userInfo
+        });
+
+        // Remove the call from active calls
+        activeCalls.delete(chatId);
+
+      } catch (error) {
+        console.error('Error rejecting call:', error);
+        socket.emit('call_error', { message: 'Failed to reject call' });
+      }
+    });
+
+    // Handle call end (for both parties)
+    socket.on('end_call', ({ chatId, callerId, calleeId }) => {
+      console.log('Call ended:', { chatId, callerId, calleeId });
+      
+      try {
+        const call = activeCalls.get(chatId);
+        if (!call) {
+          return; // Call might have already been ended
+        }
+
+        // Find both sockets
+        const callerSocket = Array.from(onlineUsers.entries())
+          .find(([userId]) => userId === callerId)?.[1]?.socketId;
+        const calleeSocket = Array.from(onlineUsers.entries())
+          .find(([userId]) => userId === calleeId)?.[1]?.socketId;
+
+        // Notify both parties if they're still online
+        if (callerSocket) {
+          io.to(callerSocket).emit('call_ended', {
+            chatId,
+            calleeId,
+            reason: 'Call ended by other party'
+          });
+        }
+
+        if (calleeSocket) {
+          io.to(calleeSocket).emit('call_ended', {
+            chatId,
+            callerId,
+            reason: 'Call ended by other party'
+          });
+        }
+
+        // Remove the call from active calls
+        activeCalls.delete(chatId);
+
+      } catch (error) {
+        console.error('Error ending call:', error);
+        socket.emit('call_error', { message: 'Failed to end call' });
+      }
+    });
+
+    // Handle ICE candidates
+    socket.on('ice_candidate', ({ chatId, candidate, fromUserId, toUserId }) => {
+      try {
+        const call = activeCalls.get(chatId);
+        
+        if (!call) {
+          socket.emit('call_error', { message: 'Call not found' });
+          return;
+        }
+
+        // Verify the candidate is from a valid participant
+        if (fromUserId !== call.callerId && fromUserId !== call.calleeId) {
+          socket.emit('call_error', { message: 'Unauthorized ICE candidate' });
+          return;
+        }
+
+        // Find recipient's socket
+        const recipientSocketId = Array.from(onlineUsers.entries())
+          .find(([userId]) => userId === toUserId)?.[1]?.socketId;
+
+        if (recipientSocketId) {
+          // Forward the ICE candidate to the other participant
+          io.to(recipientSocketId).emit('ice_candidate', {
+            chatId,
+            candidate,
+            fromUserId
+          });
+        } else {
+          socket.emit('call_error', { message: 'Recipient is offline' });
+        }
+
+      } catch (error) {
+        console.error('Error handling ICE candidate:', error);
+        socket.emit('call_error', { message: 'Failed to handle ICE candidate' });
       }
     });
   });
