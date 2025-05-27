@@ -4,6 +4,7 @@ import {
   updateUserProfile,
   updateJobTags,
   getJobSeekerProfileByUserId,
+  uploadCredential,
 } from "../controllers/profile.controller.js";
 import fs from "fs";
 import path from "path";
@@ -27,7 +28,10 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
+});
 
 router.get("/user/profile/:userId", getUserProfile);
 
@@ -41,5 +45,6 @@ router.patch("/user/profile/edit/job-tags/:userId", updateJobTags);
 
 // New route for fetching job seeker profile details by User ID
 router.get("/user/profile/:jobSeekerId/details", getJobSeekerProfileByUserId);
+router.post("/user/profile/upload-credential/:userId", upload.single('credentialFile'), uploadCredential);
 
 export default router;

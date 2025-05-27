@@ -249,3 +249,35 @@ export const getJobSeekerProfileByUserId = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const uploadCredential = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No credential file uploaded." });
+    }
+
+    const jobSeeker = await prisma.jobSeeker.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!jobSeeker) {
+      return res.status(404).json({ message: "JobSeeker not found" });
+    }
+
+    const updatedJobSeeker = await prisma.jobSeeker.update({
+      where: { id: jobSeeker.id },
+      data: {
+        credentials: req.file.path,
+      },
+    });
+
+    console.log("Updated JobSeeker", updatedJobSeeker);
+    return res.status(200).json(updatedJobSeeker);
+  } catch (error) {
+    console.error("Error updating job seeker profile:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
