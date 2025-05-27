@@ -943,6 +943,7 @@ export function initializeSocketIO(httpServer) {
     
     socket.on('disconnect', () => {
       // Find and remove the user from online users
+      
       for (const [userId, data] of onlineUsers.entries()) {
         if (data.socketId === socket.id) {
           onlineUsers.delete(userId);
@@ -981,7 +982,7 @@ export function initializeSocketIO(httpServer) {
     });
 
     // Handle call initiation
-    socket.on('initiate_call', async ({ chatId, callerId, calleeId }) => {
+    socket.on('initiate_call', async ({ chatId, callerId, calleeId,callType }) => {
       console.log('Call initiated:', { chatId, callerId, calleeId });
       
       try {
@@ -1008,14 +1009,15 @@ export function initializeSocketIO(httpServer) {
         io.to(calleeSocket).emit('incoming_call', {
           chatId,
           callerId,
-          callerInfo: onlineUsers.get(callerId)?.userInfo
+          callerInfo: onlineUsers.get(callerId)?.userInfo,
+          callType
         });
 
         // Emit to caller that call is being signaled
         socket.emit('call_initiated', {
           chatId,
           calleeId,
-          calleeInfo: onlineUsers.get(calleeId)?.userInfo
+          calleeInfo: onlineUsers.get(calleeId)?.userInfo,
         });
 
       } catch (error) {
@@ -1062,9 +1064,8 @@ export function initializeSocketIO(httpServer) {
     });
 
     // Handle call acceptance
-    socket.on('accept_call', async ({ chatId, callerId, calleeId }) => {
+    socket.on('accept_call', async ({ chatId, callerId, calleeId,callType }) => {
       console.log('Call accepted:', { chatId, callerId, calleeId });
-      
       try {
         // Get the call from active calls
         const call = activeCalls.get(chatId);
@@ -1107,7 +1108,8 @@ export function initializeSocketIO(httpServer) {
         io.to(calleeSocket).emit('call_accepted_confirmation', {
           chatId,
           callerId,
-          callerInfo: onlineUsers.get(callerId)?.userInfo
+          callerInfo: onlineUsers.get(callerId)?.userInfo,
+          callType
         });
 
       } catch (error) {
@@ -1209,44 +1211,146 @@ export function initializeSocketIO(httpServer) {
         socket.emit('call_error', { message: 'Failed to end call' });
       }
     });
+    // In your socket.io server code:
+
+    socket.on('caller_ready', ({ chatId, callerId, calleeId }) => {
+      // Store the caller's readiness in the room
+      socket.join(chatId);
+    });
+
+    socket.on('callee_ready', ({ chatId, callerId, calleeId }) => {
+      // Notify the caller that callee is ready
+      io.to(chatId).emit('callee_ready');
+    });
 
     // Handle ICE candidates
     socket.on('ice_candidate', ({ chatId, candidate, fromUserId, toUserId }) => {
-      try {
-        const call = activeCalls.get(chatId);
-        
-        if (!call) {
-          socket.emit('call_error', { message: 'Call not found' });
-          return;
-        }
+      console.log('ICE candidate from:', fromUserId, 'to:', toUserId);
+      
+      // Find recipient's socket ID
+      const recipientSocketId = Array.from(onlineUsers.entries())
+        .find(([userId]) => userId === toUserId)?.[1]?.socketId;
 
-        // Verify the candidate is from a valid participant
-        if (fromUserId !== call.callerId && fromUserId !== call.calleeId) {
-          socket.emit('call_error', { message: 'Unauthorized ICE candidate' });
-          return;
-        }
-
-        // Find recipient's socket
-        const recipientSocketId = Array.from(onlineUsers.entries())
-          .find(([userId]) => userId === toUserId)?.[1]?.socketId;
-
-        if (recipientSocketId) {
-          // Forward the ICE candidate to the other participant
-          io.to(recipientSocketId).emit('ice_candidate', {
-            chatId,
-            candidate,
-            fromUserId
-          });
-        } else {
-          socket.emit('call_error', { message: 'Recipient is offline' });
-        }
-
-      } catch (error) {
-        console.error('Error handling ICE candidate:', error);
-        socket.emit('call_error', { message: 'Failed to handle ICE candidate' });
+      if (!recipientSocketId) {
+        socket.emit('call_error', { message: 'Recipient is offline' });
+        return;
       }
+
+      // Forward the ICE candidate using socket ID
+      io.to(recipientSocketId).emit('ice_candidate', {
+        candidate,
+        fromUserId,
+        chatId
+      });
+    });
+
+    // Handle offer creation and sending
+    socket.on('create_offer', async ({ chatId, callerId, calleeId, offer }) => {
+      console.log('Offer received from:', callerId, 'to:', calleeId);
+      
+      const calleeSocketId = Array.from(onlineUsers.entries())
+        .find(([userId]) => userId === calleeId)?.[1]?.socketId;
+    
+      if (!calleeSocketId) {
+        console.log('Callee not found:', calleeId);
+        socket.emit('call_error', { message: 'Callee is offline' });
+        return;
+      }
+      console.log(onlineUsers)
+      console.log('Forwarding offer to callee:', {
+        calleeSocketId,
+        calleeId,
+        chatId,
+        offerType: offer?.type,
+        // offerSDP: offer?.sdp
+      });
+      // Forward the offer to the callee using their socket ID
+    
+      io.to(calleeSocketId).emit('receive_offer', {
+        signal: offer,
+        fromUserId: callerId,
+        chatId
+      });
+          
+      console.log('Receive offer emitted successfully');
+
+    });
+
+    // Handle answer creation and sending
+    socket.on('create_answer', async ({ chatId, callerId, calleeId, answer }) => {
+      console.log('Answer received from callee:', {
+        calleeId,
+        callerId,
+        chatId,
+        answerType: answer?.type,
+        answerSDP: answer?.sdp 
+      });
+    
+      const callerSocketId = Array.from(onlineUsers.entries())
+        .find(([userId]) => userId === callerId)?.[1]?.socketId;
+    
+      if (!callerSocketId) {
+        console.log('Caller not found:', callerId);
+        socket.emit('call_error', { message: 'Caller is offline' });
+        return;
+      }
+    
+      console.log('Forwarding answer to caller:', {
+        callerSocketId,
+        callerId,
+        answerType: answer?.type,
+        answerSDP: answer?.sdp 
+      });
+      
+    
+      io.to(callerSocketId).emit('receive_answer', {
+        signal: answer,
+        fromUserId: calleeId,
+        chatId
+      });
+      
+      console.log('Answer forwarded successfully');
+    });
+    
+
+    // Handle remote stream ready notification
+    socket.on('remote_stream_ready', ({ chatId }) => {
+      console.log('Remote stream ready for chat:', chatId);
+      
+      // Get the call information
+      const call = activeCalls.get(chatId);
+      if (!call) {
+        socket.emit('call_error', { message: 'Call not found' });
+        return;
+      }
+
+      // Find the other participant's socket ID
+      const otherUserId = call.callerId === socket.user.id ? call.calleeId : call.callerId;
+      const otherSocketId = Array.from(onlineUsers.entries())
+        .find(([userId]) => userId === otherUserId)?.[1]?.socketId;
+
+      if (!otherSocketId) {
+        socket.emit('call_error', { message: 'Other participant is offline' });
+        return;
+      }
+
+      // Notify the other participant that the remote stream is ready
+      io.to(otherSocketId).emit('remote_stream_ready', {
+        chatId,
+        fromUserId: socket.user.id
+      });
+    });
+
+    socket.on('leave_room', (roomId) => {
+      console.log(`Socket ${socket.id} leaving room ${roomId}`);
+      socket.leave(roomId);
+    });
+
+    socket.on('join_room', (roomId) => {
+      socket.join(roomId);
     });
   });
+  
 
   
 
