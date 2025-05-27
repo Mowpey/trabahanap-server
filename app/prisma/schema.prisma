@@ -57,7 +57,7 @@ model JobSeeker {
   user         User           @relation(fields: [userId], references: [id])
   userId       String         @unique @db.ObjectId
   availability Boolean
-  credentials  String?
+  credentials  String[]     @default([])
   hourlyRate   String
   rate         Float?
   joinedAt     DateTime       @default(now())

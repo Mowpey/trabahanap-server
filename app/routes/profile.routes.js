@@ -13,7 +13,8 @@ import authenticateToken from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
+// Disk storage configuration for profile image uploads
+const diskStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadPath = "assets/profiles/";
     fs.mkdirSync(uploadPath, { recursive: true });
@@ -28,8 +29,18 @@ const storage = multer.diskStorage({
   },
 });
 
+// Memory storage for credential uploads - files will be in memory until we save them
+const memoryStorage = multer.memoryStorage();
+
+// Default upload with disk storage
 const upload = multer({
-  storage: storage,
+  storage: diskStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
+});
+
+// Special upload for credentials that keeps files in memory
+const memoryUpload = multer({
+  storage: memoryStorage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
 });
 
@@ -45,6 +56,11 @@ router.patch("/user/profile/edit/job-tags/:userId", updateJobTags);
 
 // New route for fetching job seeker profile details by User ID
 router.get("/user/profile/:jobSeekerId/details", getJobSeekerProfileByUserId);
-router.post("/user/profile/upload-credential/:userId", upload.single('credentialFile'), uploadCredential);
+router.post(
+  "/user/profile/upload-credential/:userId",
+  authenticateToken,
+  memoryUpload.array("credentialFile", 5),
+  uploadCredential
+);
 
 export default router;
