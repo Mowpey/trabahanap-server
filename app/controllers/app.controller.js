@@ -732,22 +732,16 @@ export const getNotifications = async (req, res) => {
   try {
     const userId = req.user.id; // Assumes authentication middleware sets req.user
     const userType = req.user.userType; // e.g., "client" or "job-seeker"
-
+    console.log(userId, userType,userId);
     // Build the where clause based on user type
     let whereClause = {};
     if (userType === "client") {
       whereClause.clientId = userId;
     } else if (userType === "job-seeker") {
       // Find the jobSeekerId for this user
-      const jobSeeker = await prisma.jobSeeker.findUnique({
-        where: { userId },
-        select: { id: true },
-      });
-      if (jobSeeker) {
-        whereClause.jobSeekerId = jobSeeker.userId;
-      } else {
-        return res.status(404).json({ error: "Job seeker profile not found." });
-      }
+
+        whereClause.jobSeekerId = userId;
+
     } else {
       return res.status(400).json({ error: "Invalid user type." });
     }
@@ -757,7 +751,7 @@ export const getNotifications = async (req, res) => {
       where: whereClause,
       orderBy: { createdAt: "desc" },
     });
-
+    console.log(notifications);
     res.json({ notifications });
   } catch (error) {
     console.error("Error fetching notifications:", error);
