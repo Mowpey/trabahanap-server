@@ -681,6 +681,7 @@ export const getUserProfile = async (req, res) => {
       joinedAt: jobSeeker.user.joinedAt
         ? jobSeeker.user.joinedAt.toISOString()
         : null,
+      credentials: jobSeeker.credentials || [],
     };
 
     return res.status(200).json(response);
