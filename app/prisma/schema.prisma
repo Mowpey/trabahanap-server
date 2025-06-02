@@ -48,6 +48,7 @@ model User {
   blockedByUsers BlockedUser[] @relation("Blocked")
 
   applicants Applicants[]
+  achievements Achievement[] // Relation to achievements, linked by Achievement.userId
 
   @@map("users")
 }
@@ -81,9 +82,12 @@ model Achievement {
   achievementName  String
   jobRequired      String
   requiredJobCount Int
-  achievementIcon  String
-  jobSeeker        JobSeeker @relation(fields: [jobSeekerId], references: [id])
-  jobSeekerId      String    @db.ObjectId
+  jobSeeker        JobSeeker? @relation(fields: [jobSeekerId], references: [id]) // Made JobSeeker relation optional
+  jobSeekerId      String?    @db.ObjectId // Made jobSeekerId optional
+  // jobSeeker        JobSeeker @relation(fields: [jobSeekerId], references: [id]) // Corresponding relation for jobSeekerId
+
+  userId           String    @db.ObjectId // Foreign key for the User
+  user             User      @relation(fields: [userId], references: [id]) // Relation to the User model
 
   @@map("achievements")
 }

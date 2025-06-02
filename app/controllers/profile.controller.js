@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 const prisma = new PrismaClient();
 
@@ -264,7 +264,7 @@ export const uploadCredential = async (req, res) => {
     }
 
     console.log(`Received ${req.files.length} files in memory`);
-    
+
     // Find the JobSeeker first
     const jobSeeker = await prisma.jobSeeker.findUnique({
       where: { userId },
@@ -278,30 +278,33 @@ export const uploadCredential = async (req, res) => {
 
     // Generate filenames and paths before writing to disk
     const uploadPath = "assets/profiles/";
-    
+
     // Ensure directory exists
     fs.mkdirSync(uploadPath, { recursive: true });
-    
+
     // Generate paths for each file
-    const filePaths = req.files.map(file => {
+    const filePaths = req.files.map((file) => {
       const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      const filename = file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname);
+      const filename =
+        file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname);
       return uploadPath + filename;
     });
-    
+
     console.log("Generated file paths:", filePaths);
 
     // Update database FIRST, before writing files
     // Ensure credentials is properly initialized as an array
-    const currentCredentials = Array.isArray(jobSeeker.credentials) ? jobSeeker.credentials : [];
+    const currentCredentials = Array.isArray(jobSeeker.credentials)
+      ? jobSeeker.credentials
+      : [];
     const newCredentials = [...currentCredentials, ...filePaths];
-    
+
     console.log("Updating database with credential paths");
     const result = await prisma.jobSeeker.update({
       where: { userId },
       data: { credentials: newCredentials },
     });
-    
+
     console.log("Database updated successfully");
 
     // Now that database is updated, write files to disk
@@ -312,19 +315,23 @@ export const uploadCredential = async (req, res) => {
             console.error(`Error writing file ${filePaths[index]}:`, err);
             reject(err);
           } else {
-            console.log(`File ${index + 1} written successfully to ${filePaths[index]}`);
+            console.log(
+              `File ${index + 1} written successfully to ${filePaths[index]}`
+            );
             resolve();
           }
         });
       });
     });
-    
+
     // Process all file writes - if server restarts during this, database is already updated
-    Promise.all(writeFilePromises).then(() => {
-      console.log("All files written successfully");
-    }).catch(err => {
-      console.error("Error writing some files:", err);
-    });
+    Promise.all(writeFilePromises)
+      .then(() => {
+        console.log("All files written successfully");
+      })
+      .catch((err) => {
+        console.error("Error writing some files:", err);
+      });
 
     return res.status(200).json({
       message: "Credentials uploaded successfully",
@@ -332,22 +339,50 @@ export const uploadCredential = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in uploadCredential:", error);
-    
+
     // Prisma-specific error handling
     if (error.code === "P2025") {
       return res.status(404).json({ message: "JobSeeker record not found" });
     }
 
     if (error.code && error.code.startsWith("P")) {
-      return res.status(500).json({ 
-        message: "Database error", 
-        error: error.message 
+      return res.status(500).json({
+        message: "Database error",
+        error: error.message,
       });
     }
 
-    return res.status(500).json({ 
-      message: "Internal server error", 
-      error: error.message 
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
     });
+  }
+};
+
+export const getAchievements = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    // 1. Verify the user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 2. Fetch achievements directly by userId for the given user.
+    // This assumes your Achievement model in schema.prisma has a 'userId' field
+    // that correctly links to the User model's id.
+    // If this field is missing or named differently in your schema, Prisma will error.
+    const achievements = await prisma.achievement.findMany({
+      where: { userId: userId }, // Querying by the userId field on the Achievement model
+    });
+
+    return res.status(200).json(achievements);
+  } catch (error) {
+    console.error("Error in getAchievements:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
