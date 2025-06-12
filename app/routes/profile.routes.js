@@ -5,7 +5,6 @@ import {
   updateJobTags,
   getJobSeekerProfileByUserId,
   uploadCredential,
-  getAchievements,
 } from "../controllers/profile.controller.js";
 import fs from "fs";
 import path from "path";
@@ -63,7 +62,5 @@ router.post(
   memoryUpload.array("credentialFile", 5),
   uploadCredential
 );
-
-router.get("/user/achievements/:userId", authenticateToken, getAchievements);
 
 export default router;
